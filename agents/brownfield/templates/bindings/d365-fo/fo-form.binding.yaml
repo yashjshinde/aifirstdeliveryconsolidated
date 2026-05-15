@@ -1,0 +1,24 @@
+artifactType: fo-form
+displayName: "F&O AOT Form"
+pattern: ui-asset
+sourcePaths:
+  - "AxForm/*.xml"
+extractors:
+  name: "AxForm/{name}.xml > AxForm/Name"
+  label: "AxForm/{name}.xml > AxForm/Label"
+  formType: "AxForm/{name}.xml > AxForm/DesignTemplate"
+  dataSources: "AxForm/{name}.xml > AxForm/DataSources/AxFormDataSource"
+  design: "AxForm/{name}.xml > AxForm/Design"
+  tabs: "AxForm/{name}.xml > AxForm/Design/Controls/AxFormControl[Type=Tab]"
+  controls: "AxForm/{name}.xml > AxForm/Design/Controls/AxFormControl"
+  methods: "AxForm/{name}.xml > AxForm/Methods/AxMethod"
+crossRefs:
+  - { type: table, link: "datasource.table == table.name" }
+  - { type: menu-item, link: "menuItem.targetObject == artifact.name AND menuItem.targetType == Form" }
+  - { type: fo-form-extension, link: "extension.target == artifact.name" }
+requires: []
+validators:
+  - validate_form_layout
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/ui/fo-forms/{name}.md"

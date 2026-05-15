@@ -1,0 +1,26 @@
+artifactType: ssrs-report
+displayName: "CE SSRS Report (RDL)"
+pattern: ui-asset
+sourcePaths:
+  - "**/*.rdl"
+extractors:
+  name: "*.rdl file name (sans .rdl)"
+  description: "Report > Description"
+  author: "Report > Author"
+  dataSources: "Report > DataSources/DataSource"
+  datasets: "Report > DataSets/DataSet"
+  commandText: "Report > DataSets/DataSet[i]/Query/CommandText (VERBATIM)"
+  parameters: "Report > ReportParameters/ReportParameter"
+  reportItems: "Report > Body/ReportItems/* (Tablix / Matrix / Chart / Textbox hierarchy)"
+  groupings: "Report > Body/ReportItems/Tablix/TablixRowHierarchy + TablixColumnHierarchy"
+  expressions: "Report > Body//*/Value (verbatim where non-trivial)"
+crossRefs:
+  - { type: ssrs-subscription, link: "subscription.reportPath == artifact.path" }
+  - { type: ssrs-snapshot, link: "snapshot.reportPath == artifact.path" }
+  - { type: entity, link: "commandText references CE entity tables" }
+requires: []
+validators:
+  - validate_ssrs_sql            # critical: verbatim SQL from CommandText
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/reporting/ssrs/{name}.md"

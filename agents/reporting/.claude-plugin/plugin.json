@@ -1,0 +1,28 @@
+{
+  "_comment": "Canonical Claude plugin manifest template. Rendered by Publish-Agents.ps1 (Job 3) into agents/{AGENT_NAME}/.claude-plugin/plugin.json. Placeholders: reporting, 1.0.0, CE SSRS + Power BI (CE data and BYOD-exposed F&O data). F&O native SSRS stays in d365-fo agent, standard. See ADR-0004 for the plugin-distribution rationale.",
+
+  "name": "spec-driven-dev-reporting",
+  "version": "1.0.0",
+  "description": "CE SSRS + Power BI (CE data and BYOD-exposed F&O data). F&O native SSRS stays in d365-fo agent",
+
+  "author": {
+    "name": "Spec-Driven Development Platform"
+  },
+
+  "homepage": "",
+  "repository": "",
+  "license": "TBD",
+
+  "keywords": [
+    "spec-driven-development",
+    "d365",
+    "power-platform",
+    "reporting",
+    "standard"
+  ],
+
+  "_meta": {
+    "generated-by": "tools/sync/Publish-Agents.ps1",
+    "do-not-edit": "Generated file. Hand-edits fail .github/workflows/check-publish-drift.yml. Author lives at tools/sync/plugin.template.json."
+  }
+}

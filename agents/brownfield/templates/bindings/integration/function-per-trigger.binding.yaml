@@ -1,0 +1,33 @@
+artifactType: function-per-trigger
+displayName: "Azure Function (per trigger)"
+pattern: code-asset
+sourcePaths:
+  - "**/{functionApp}/{functionName}/function.json"
+  - "**/{functionApp}/{functionName}/run.cs"
+  - "**/{functionApp}/{functionName}/run.ts"
+  - "**/{functionApp}/{functionName}/index.js"
+  - "**/{functionApp}/host.json"
+extractors:
+  name: "{functionApp}/{functionName} (folder name)"
+  functionApp: "parent folder name"
+  triggerType: "function.json > bindings[?direction=in][0].type"
+  bindings: "function.json > bindings"
+  retryPolicy: "function.json > retry OR host.json > retry"
+  authLevel: "function.json > bindings[?type=httpTrigger].authLevel"
+  scriptFile: "function.json > scriptFile"
+  entryPoint: "function.json > entryPoint"
+  isDurableOrchestrator: "run.cs > attributes contains [OrchestrationTrigger]"
+  body: "run.{cs|ts|js} > entry-point method body (verbatim)"
+crossRefs:
+  - { type: function-app, link: "function-app.name == artifact.functionApp" }
+  - { type: storage-account, link: "binding.type in [blob|queue] AND binding.connection -> storage" }
+  - { type: sb-topic, link: "binding.type == serviceBusTrigger AND binding.topicName == topic.name" }
+  - { type: sb-queue, link: "binding.type == serviceBusTrigger AND binding.queueName == queue.name" }
+  - { type: eg-topic, link: "binding.type == eventGridTrigger" }
+  - { type: key-vault, link: "appSetting matches @Microsoft.KeyVault(...)" }
+requires: []
+validators:
+  - validate_integration_contract
+  - validate_plugin_logic
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/integration/functions/{functionApp}.{functionName}.md"

@@ -1,0 +1,89 @@
+---
+description: Export local work items / test cases to CSV / XLSX / JSON for offline review
+agent: alm
+phase: ALM
+gates: []
+---
+
+# /alm export
+
+> Write a snapshot of local `work-items.yaml` (filtered as requested) to a portable file. **No ALM writes; no ALM reads.** Output is intended for offline QA review, stakeholder distribution, or programmatic post-processing.
+
+## Usage
+
+```
+/alm export <artifact> --format csv|xlsx|json --to <path> [--include <fields>] [--filter --suite <slug>] [--feature <f>] [--levels L1,L2,L3,L4] [--project <name>]
+```
+
+`<artifact>`: `work-items` | `tests`
+
+## Output formats
+
+### CSV
+
+Flat, one row per work item or one row per test case (depending on `<artifact>`). Steps stored in a multi-line cell delimited by `\n`. Universal — opens in Excel / Numbers / Google Sheets.
+
+Columns (v1, when `<artifact>=tests`):
+```
+PlanName,SuiteName,SuiteId,CaseId,LocalUID,CaseName,Steps,ExpectedResults,Priority,Owner,Tags,LastPushedAt,AlmId
+```
+
+### XLSX
+
+Multi-sheet workbook (QA-team-friendly):
+- `Plan` sheet — top-level test plan metadata (one row per plan)
+- `Suites` sheet — per-suite metadata
+- `Cases` sheet — per-case metadata (one row per test case)
+- `Steps` sheet — per-step (one row per step; references CaseId)
+- `Traceability` sheet — `localUID ↔ almId ↔ specFR` cross-reference
+
+For `<artifact>=work-items`:
+- `Hierarchy` sheet — flat L1-L4 list
+- `Traceability` sheet — same as above
+
+### JSON
+
+Programmatic — full fidelity. Matches `traceability.yaml` + `work-items.yaml` schema. Used for tool-to-tool exchange. Validates against `schemas/work-items.v1.json` (for `<artifact>=work-items`) or an equivalent test-case schema (queued for `bk-018`).
+
+## Flags
+
+| Flag | Default | Effect |
+|---|---|---|
+| `--include <fields>` | all | Comma-separated allowlist of fields (e.g., `--include localUID,title,priority,owner`) |
+| `--filter --suite <slug>` | none | Filter to one suite |
+| `--feature <f>` | none | Filter to one feature |
+| `--levels L1,L2,L3,L4` | all | Filter to specific tier(s) |
+| `--to <path>` | required | Output file path |
+
+## Inputs
+
+- `projects/{p}/work-items.yaml`
+- `projects/{p}/{agent}/features/{f}/test-plan/**.suite.md` (for tests)
+- `projects/{p}/{agent}/features/{f}/traceability.yaml`
+
+## Execution flow
+
+1. Resolve scope filters.
+2. Load `work-items.yaml`; filter per flags.
+3. For `<artifact>=tests`, walk `test-plan/{suite}.suite.md` files; parse numbered test cases + steps.
+4. Render to target format:
+   - CSV: stringify steps with `\n` newlines
+   - XLSX: produce multi-sheet workbook (via MCP `alm_export_xlsx` helper — TBD; v1 may use a Node `exceljs` shim)
+   - JSON: emit canonical JSON; validate against schema
+5. Write to `<path>`.
+6. Print summary: count exported per tier / per suite / per case.
+
+## Output
+
+- The file at `<path>`
+- `projects/{p}/alm-reports/export-{ts}.md` — short audit entry (what was exported, scope filters, target path)
+
+## Out of scope for v1
+
+- ADO test case XML (native ADO bulk-import format) — queued as backlog item; rationale: rarely used outside MS ecosystem; XLSX covers QA team workflows
+- JIRA Xray / Zephyr CSV — depends on which test add-on the project uses; queued under `bk-018`
+
+## See also
+
+- [constitution/01-alm-mapping.md](../../constitution/01-alm-mapping.md)
+- [design/agents/alm.md § export and import](../../../design/agents/alm.md)

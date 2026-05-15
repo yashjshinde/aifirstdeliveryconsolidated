@@ -1,0 +1,25 @@
+artifactType: data-entity
+displayName: "F&O Data Entity"
+pattern: schema-asset
+sourcePaths:
+  - "AxDataEntityView/*.xml"
+extractors:
+  name: "AxDataEntityView/{name}.xml > AxDataEntityView/Name"
+  publicEntityName: "AxDataEntityView/{name}.xml > AxDataEntityView/PublicEntityName"
+  publicCollectionName: "AxDataEntityView/{name}.xml > AxDataEntityView/PublicCollectionName"
+  dataManagementEnabled: "AxDataEntityView/{name}.xml > AxDataEntityView/DataManagementEnabled"
+  entityCategory: "AxDataEntityView/{name}.xml > AxDataEntityView/EntityCategory"
+  primaryDataSource: "AxDataEntityView/{name}.xml > AxDataEntityView/DataSources/AxQuerySimpleDataSource[Name=root]/Table"
+  dataSources: "AxDataEntityView/{name}.xml > AxDataEntityView/DataSources/AxQuerySimpleDataSource"
+  fields: "AxDataEntityView/{name}.xml > AxDataEntityView/Fields/AxDataEntityViewField"
+  mappings: "AxDataEntityView/{name}.xml > AxDataEntityView/Mappings"
+  keyFields: "AxDataEntityView/{name}.xml > AxDataEntityView/Indexes[Primary=Yes]/Fields"
+crossRefs:
+  - { type: table, link: "datasource.table == table.name" }
+  - { type: dmf-project, link: "dmfProject.entities includes artifact.name" }
+  - { type: virtual-entity-provider, link: "vep.entity == artifact.name" }
+requires: []
+validators:
+  - validate_entity_field_dictionary
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/data-model/data-entities/{name}.md"

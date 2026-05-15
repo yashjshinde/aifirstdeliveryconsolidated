@@ -1,0 +1,69 @@
+# module-detection.yaml
+#
+# Used by brownfield-engine/module-detector.ts and shared with solution-estimate per
+# design/agents/brownfield.md and design/agents/solution-estimate.md.
+#
+# Detected modules are returned by `brownfield_module_detect(inventory)` (MCP) and recorded in
+# inventory.json `detectedModules[]`. Bindings declaring `requires: module:<name>` are silent-skipped
+# when their module is not in detectedModules. Silent-skip is NOT a gap.
+#
+# Detection happens AFTER step 1-N of the per-platform scan templates have populated inventory but
+# BEFORE module-gated walks (per scan templates Step 9 or equivalent).
+#
+# See: design/agents/brownfield.md, design/adr/0008-brownfield-patterns-and-bindings.md
+
+version: 1
+
+modules:
+  customer-service:
+    # Triggered when any of these CE entities are present
+    detected-when:
+      - entity-present: [sla, queue, routingrule, entitlement, knowledgearticle, msdyn_macro, msdyn_productivityagentscript]
+    affects-platforms: [d365-ce]
+    description: "Customer Service module (SLAs, queues, KB, entitlements, routing, productivity tools)"
+
+  sales:
+    detected-when:
+      - entity-present: [opportunity, quote, salesorder, invoice, product, pricelevel, lead, competitor]
+    affects-platforms: [d365-ce]
+    description: "Sales module (opportunity-to-cash, product catalogue, pricing)"
+
+  marketing:
+    detected-when:
+      - entity-prefix: [msdynmkt_]
+      - entity-present: [list, campaign, customerjourney]
+    affects-platforms: [d365-ce]
+    description: "Marketing module (customer journeys, segments, marketing lists, campaigns)"
+
+  field-service:
+    detected-when:
+      - entity-prefix: [msdyn_workorder, msdyn_resource, msdyn_bookableresource]
+    affects-platforms: [d365-ce]
+    description: "Field Service module (work orders, scheduling, resources)"
+
+  project-operations:
+    detected-when:
+      - entity-prefix: [msdyn_project, proj_]
+    affects-platforms: [d365-ce, d365-fo]
+    description: "Project Operations module (projects, tasks, billing, resource planning)"
+
+  retail:
+    detected-when:
+      - fo-descriptor-references: [Retail, Commerce]
+      - aot-folder-present: [RetailDevelopment]
+    affects-platforms: [d365-fo]
+    description: "Retail / Commerce module (channels, hardware, payment connectors, POS extensions)"
+
+  commerce:
+    detected-when:
+      - fo-descriptor-references: [Commerce]
+    affects-platforms: [d365-fo]
+    description: "Commerce / Headless Commerce extensions"
+
+# Notes:
+# - Detection is conservative: ANY signal in the detected-when list triggers detection.
+# - Module-gated bindings carry `requires: module:<name>`. When the named module is NOT in
+#   detectedModules[], the binding is silent-skipped during /document.
+# - Bindings without `requires:` always run.
+# - When customer requires a module not listed here, add the detection rule + matching bindings
+#   per the contribution guidance in design/agents/brownfield.md.

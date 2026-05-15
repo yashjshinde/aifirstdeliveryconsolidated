@@ -12,7 +12,7 @@
                     },
                     {
                         "name":  "spec-driven-dev-d365-fo",
-                        "description":  "Dynamics 365 Finance \u0026 Operations ?????\" X++, AOT, DMF, batch, ER, F\u0026O-native SSRS; feature-scoped FastTrack pattern",
+                        "description":  "Dynamics 365 Finance and Operations -- X++, AOT, DMF, batch, ER, F\u0026O-native SSRS; feature-scoped FastTrack pattern",
                         "version":  "1.0.0",
                         "maturity":  "autonomous",
                         "source":  "agents/d365-fo"

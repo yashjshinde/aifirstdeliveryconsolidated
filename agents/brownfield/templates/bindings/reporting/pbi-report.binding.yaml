@@ -1,0 +1,29 @@
+artifactType: pbi-report
+displayName: "Power BI Report"
+pattern: ui-asset
+sourcePaths:
+  - "**/*.pbip/**.Report/report.json"
+  - "**/*.pbip/**.Report/pages/*.json"
+  - "**/*.pbip/**.Report/definition.pbir"
+extractors:
+  name: "**.Report folder name (without .Report suffix)"
+  datasetReference: "definition.pbir > dataset.byPath"
+  theme: "report.json > theme"
+  pages: "pages/*.json (one per page)"
+  pageNames: "pages/*.json > name"
+  pageDisplayOrder: "pages/*.json > ordinal"
+  visualsPerPage: "pages/*.json > visualContainers"
+  visualTypes: "pages/*.json > visualContainers[*].visual.visualType"
+  bookmarks: "report.json > bookmarks"
+  filters: "report.json > filters AND pages/*.json > filters"
+  slicers: "pages/*.json > visualContainers[*] where visualType==slicer"
+  drillThroughs: "report.json > drillthroughTargets"
+crossRefs:
+  - { type: pbi-dataset, link: "report.datasetReference points to dataset" }
+  - { type: pbi-dashboard, link: "dashboard tiles pin visuals from artifact" }
+  - { type: pbi-app, link: "app published-set includes artifact.name" }
+requires: []
+validators:
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/reporting/reports/{name}.md"

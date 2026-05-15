@@ -1,0 +1,22 @@
+{
+  "_comment": "Canonical settings.json template. Rendered by Publish-Agents.ps1 (Job 2) into agents/{AGENT_NAME}/.claude/settings.json and (with MCP_SERVER_PATH adjusted) into root .claude/settings.json. Placeholders: ../../../tools/mcp-server/dist/index.js, d365-fo, (agent standalone). Drift-checked; do NOT hand-edit any generated copy.",
+
+  "mcpServers": {
+    "spec-driven-dev": {
+      "command": "node",
+      "args": ["../../../tools/mcp-server/dist/index.js"]
+    }
+  },
+
+  "hooks": {
+    "_comment": "Hard-gate enforcement hooks (bk-022). Stubs only in Phase 4; fully populated when bk-022 is closed. Pre-tool-use hook will read .workflow.json and refuse downstream commands if upstream gates are PENDING. See design/04-workflow-gates.md and design/11-mcp-server.md § Hook configurations.",
+    "PreToolUse": [],
+    "PostToolUse": []
+  },
+
+  "_meta": {
+    "generated-by": "tools/sync/Publish-Agents.ps1",
+    "agent": "d365-fo",
+    "do-not-edit": "Generated file. Hand-edits fail .github/workflows/check-publish-drift.yml. Author lives at tools/sync/settings.template.json."
+  }
+}

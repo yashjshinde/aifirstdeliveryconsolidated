@@ -1,0 +1,28 @@
+{
+  "_comment": "Canonical Claude plugin manifest template. Rendered by Publish-Agents.ps1 (Job 3) into agents/{AGENT_NAME}/.claude-plugin/plugin.json. Placeholders: d365-fo, 1.0.0, Dynamics 365 Finance and Operations -- X++, AOT, DMF, batch, ER, F&O-native SSRS; feature-scoped FastTrack pattern, autonomous. See ADR-0004 for the plugin-distribution rationale.",
+
+  "name": "spec-driven-dev-d365-fo",
+  "version": "1.0.0",
+  "description": "Dynamics 365 Finance and Operations -- X++, AOT, DMF, batch, ER, F&O-native SSRS; feature-scoped FastTrack pattern",
+
+  "author": {
+    "name": "Spec-Driven Development Platform"
+  },
+
+  "homepage": "",
+  "repository": "",
+  "license": "TBD",
+
+  "keywords": [
+    "spec-driven-development",
+    "d365",
+    "power-platform",
+    "d365-fo",
+    "autonomous"
+  ],
+
+  "_meta": {
+    "generated-by": "tools/sync/Publish-Agents.ps1",
+    "do-not-edit": "Generated file. Hand-edits fail .github/workflows/check-publish-drift.yml. Author lives at tools/sync/plugin.template.json."
+  }
+}

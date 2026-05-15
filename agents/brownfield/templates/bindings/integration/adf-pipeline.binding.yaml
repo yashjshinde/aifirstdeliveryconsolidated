@@ -1,0 +1,31 @@
+artifactType: adf-pipeline
+displayName: "Azure Data Factory Pipeline"
+pattern: process-asset
+sourcePaths:
+  - "**/factory/pipeline/*.json"
+extractors:
+  name: "factory/pipeline/{name}.json > name"
+  description: "factory/pipeline/{name}.json > properties.description"
+  activities: "factory/pipeline/{name}.json > properties.activities"
+  activitiesOrder: "properties.activities[*].dependsOn (topologically sorted)"
+  parameters: "factory/pipeline/{name}.json > properties.parameters"
+  variables: "factory/pipeline/{name}.json > properties.variables"
+  triggers: "factory/trigger/* where pipelines includes {name}"
+  copyActivities: "activities[?type=Copy]"
+  dataflowActivities: "activities[?type=ExecuteDataFlow]"
+  storedProcActivities: "activities[?type=SqlServerStoredProcedure]"
+  lookupActivities: "activities[?type=Lookup]"
+  foreachActivities: "activities[?type=ForEach]"
+  webhookActivities: "activities[?type=WebHook]"
+crossRefs:
+  - { type: adf-linked-service, link: "activity.linkedServiceName" }
+  - { type: adf-dataset, link: "activity.inputs[*].referenceName OR outputs[*].referenceName" }
+  - { type: adf-data-flow, link: "activity.dataflow.referenceName" }
+  - { type: adf-trigger, link: "trigger.pipelines[*].name == artifact.name" }
+  - { type: stored-proc, link: "storedProcActivity.storedProcedureName" }
+requires: []
+validators:
+  - validate_flow_runbook
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/integration/adf/pipelines/{name}.md"

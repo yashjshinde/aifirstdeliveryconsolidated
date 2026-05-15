@@ -1,0 +1,28 @@
+artifactType: form
+displayName: "Dataverse Main Form (Model-Driven)"
+pattern: ui-asset
+sourcePaths:
+  - "Entities/*/FormXml/forms/main/*.xml"
+  - "Entities/*/FormXml/forms/quickcreate/*.xml"
+  - "Entities/*/FormXml/forms/quickview/*.xml"
+extractors:
+  name: "{file}.xml > systemform/name"
+  objectTypeCode: "{file}.xml > systemform/objecttypecode"
+  formType: "{file}.xml > systemform/type"
+  description: "{file}.xml > systemform/description"
+  tabs: "{file}.xml > systemform/form/tabs/tab"
+  sections: "{file}.xml > systemform/form/tabs/tab/columns/column/sections/section"
+  fields: "{file}.xml > systemform/form/tabs/tab/columns/column/sections/section/rows/row/cell"
+  subgrids: "{file}.xml > systemform/form/tabs/tab/columns/column/sections/section/rows/row/cell/control[classid:subgrid]"
+  events: "{file}.xml > systemform/events"
+  formScripts: "{file}.xml > systemform/formLibraries/Library"
+crossRefs:
+  - { type: entity, link: "entity.name == artifact.objectTypeCode" }
+  - { type: js-function, link: "form.events.handler == jsFunction.functionName" }
+  - { type: view, link: "subgrid.viewId == view.id" }
+requires: []
+validators:
+  - validate_form_layout
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/ui/forms/{objectTypeCode}.{name}.md"

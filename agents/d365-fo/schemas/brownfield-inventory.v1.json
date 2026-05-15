@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spec-driven-dev/schemas/brownfield-inventory.v1.json",
+  "title": "brownfield inventory — output of /scan",
+  "description": "Output of /scan in the brownfield agent. Enumerates every artifact in the source solution by platform + artifactType + instance. Consumed by /document (per-artifact doc generation), /handoff (for downstream agents in brownfield mode), and solution-estimate (for brownfield multipliers). See design/agents/brownfield.md.",
+  "type": "object",
+  "required": ["schemaVersion", "project", "scannedAt", "platforms"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "project": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "scannedAt": { "type": "string", "format": "date-time" },
+    "scannedBy": { "type": "string", "description": "user or command id" },
+    "sources": {
+      "type": "array",
+      "description": "Input source files/folders that contributed to this scan (paths under _brownfield/input/).",
+      "items": { "type": "string" }
+    },
+    "detectedModules": {
+      "type": "array",
+      "description": "Modules detected by module-detection.yaml. Bindings with requires: module:<x> are silent-skipped when their module isn't in this list.",
+      "items": {
+        "enum": ["customer-service", "sales", "marketing", "field-service", "retail", "project-operations", "commerce"]
+      },
+      "uniqueItems": true
+    },
+    "platforms": {
+      "type": "object",
+      "patternProperties": {
+        "^(d365-ce|d365-fo|integration|reporting|power-apps|power-pages|custom-pages)$": {
+          "type": "object",
+          "description": "Per-platform inventory. Key by artifact type; value is an array of instances.",
+          "patternProperties": {
+            "^[a-z][a-z0-9-]*$": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/artifactInstance" }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "totalArtifacts": { "type": "integer", "minimum": 0 },
+        "byPlatform": {
+          "type": "object",
+          "patternProperties": {
+            "^(d365-ce|d365-fo|integration|reporting|power-apps|power-pages|custom-pages)$": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "byArtifactType": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z][a-z0-9-]*$": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "artifactInstance": {
+      "type": "object",
+      "required": ["name", "sourceRef"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "description": "Logical name of this instance (e.g., entity name, plugin class name)" },
+        "displayName": { "type": "string" },
+        "sourceRef": {
+          "type": "string",
+          "description": "Evidence chain: file:line or zip-path that this instance was extracted from. Required by validate_evidence_chain."
+        },
+        "module": {
+          "enum": ["customer-service", "sales", "marketing", "field-service", "retail", "project-operations", "commerce", "core"],
+          "description": "Module classification. If a binding requires a module gate, this field determines whether the binding processes this instance."
+        },
+        "brownfieldStatus": {
+          "enum": ["NEW", "EXTEND", "REPLACE", "REFERENCED", "N/A"],
+          "description": "Brownfield component classification used by solution-estimate multipliers per ADR-0009. NEW = full effort (×1.0), EXTEND = partial (×0.6), REPLACE = removal + replacement (×1.15), REFERENCED = no implementation (×0.0). Defaults to N/A in greenfield mode."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Free-form artifact-specific metadata extracted by the binding's extractors (e.g., for an entity: fields, relationships, keys, plugin-steps).",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

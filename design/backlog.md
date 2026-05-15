@@ -21,10 +21,30 @@ owner: design
 ## Summary
 
 - **Total items:** 28
-- **Done:** 6 (bk-001 port-scope, bk-003 agents.yaml schema, bk-009 solution-estimate, bk-020 scaffold scripts, bk-021 publish-pipeline templates, bk-024 ADR backfill)
+- **Done (post-Phase 10):** 18
+  - **Phase 0 / 1:** bk-001 (port-scope), bk-003 (agents.yaml schema), bk-024 (ADR backfill — 11 ADRs)
+  - **Phase 3 / 4:** bk-020 (scaffold scripts), bk-021 (publish-pipeline templates)
+  - **Phase 5:** bk-009 (solution-estimate `/estimate`)
+  - **Phase 6:** bk-004 (additive-section logic), bk-005 (d365-ce FDD R19 A1-A15 skeleton), bk-006 (d365-ce TDD multi-file pack), bk-007 (sub-platform pack skeletons), bk-008 (review checklists), bk-025 (per-agent generic), bk-026 (d365-fo), bk-027 (reporting)
+  - **Phase 7:** bk-011 (9 pattern templates), bk-013 (module-detection.yaml), bk-015 (7 scan templates), bk-017 (brownfield doc command output formats)
+  - **Phase 8:** bk-028 (alm agent design + commands + templates)
+  - **Phase 9:** bk-019 (chat UI UX flows + implementation v1)
 - **In progress:** 0
-- **Queued:** 22 (design-doc skeletons in place; build-phase authoring pending)
+- **Queued (post-Phase 10) — coding follow-ons + content polish:**
+  - **bk-002** /split semantics design refinement (6 thin spots)
+  - **bk-005** d365-ce FDD body content (skeleton ✅; per-feature body authored when real features run /fdd)
+  - **bk-007** d365-ce sub-platform pack body content (Canvas / Pages / PCF / PA — skeletons ✅)
+  - **bk-008** d365-ce platform-specific review checklists polish (base 6 stubs ✅; specialisation queued)
+  - **bk-010** solution-estimate factor catalogue extensions (F&O / deeper Integration / deeper Reporting)
+  - **bk-012** brownfield ~167 remaining bindings (18 sample ✅; rest paired with CI test corpus)
+  - **bk-014** brownfield-engine MCP TypeScript code (~8 modules)
+  - **bk-016** 10 brownfield validators + CI test corpus
+  - **bk-018** MCP `alm_*` tool group + `converters/` module (10 + 5 tools); ADO + JIRA Cloud + JIRA Server adapters
+  - **bk-022** Hook configurations for hard-gate enforcement
+  - **bk-023** /customize-template scaffold helper
 - **Blocked / dropped:** 0
+
+*Updated 2026-05-15 post-Phase 10 close-out: all 9 implementation phases complete (Phases 0-9). 18 backlog items closed across the phases; the 10 remaining items are coding follow-ons (MCP `brownfield-engine`, `brownfield_validators`, `alm_*`, `converters/`) and per-agent content polish. The platform v1 release-ready milestone is achieved at the structural / design level; per-agent body content and MCP-layer code are explicitly queued. See [../implementation.md § Phase 10](../implementation.md) and [verification-report-2026-05-15.md](verification-report-2026-05-15.md) for the close-out audit.*
 
 *Updated 2026-05-14 (later, post-Phase-1 build): bk-001 resolved to Option A (BASIC agents first — solution-estimate + solution-architect); bk-003 closed (agents.yaml authored with full registry shape including version, base-commands, extra-commands, docScope per agent; further JSON Schema for the registry itself remains TBD). See [../implementation.md entry 2026-05-14-005](../implementation.md).*
 

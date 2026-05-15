@@ -1,13 +1,13 @@
-# agents.yaml ?????" agent registry
+# agents.yaml -- agent registry
 #
 # Single source of truth for which agents exist, their version, the commands they expose,
 # and (for domain agents) the docScope assignment for FDD / TDD / blueprint per ADR-0006.
 #
 # Consumed by:
-#   - tools/scaffold/New-Feature.ps1 ?????" reads docScope to lay out per-feature folder shape
-#   - tools/scaffold/New-Project.ps1 ?????" reads agents-list to scaffold per-agent subfolders under projects/{p}/
-#   - tools/sync/Publish-Agents.ps1  ?????" reads base-commands + extra-commands to render the four delivery surfaces
-#   - MCP server                     ?????" reads docScope at /fdd / /tdd / /blueprint dispatch time
+#   - tools/scaffold/New-Feature.ps1 -- reads docScope to lay out per-feature folder shape
+#   - tools/scaffold/New-Project.ps1 -- reads agents-list to scaffold per-agent subfolders under projects/{p}/
+#   - tools/sync/Publish-Agents.ps1  -- reads base-commands + extra-commands to render the four delivery surfaces
+#   - MCP server                     -- reads docScope at /fdd / /tdd / /blueprint dispatch time
 #
 # Validated against: schemas/agents-registry.v1.json (not yet authored; bk-003 follow-up)
 #
@@ -36,7 +36,7 @@ agents:
       fdd: feature
       tdd: feature
       blueprint: feature
-    description: "Dynamics 365 Finance & Operations ?????" X++, AOT, DMF, batch, ER, F&O-native SSRS; feature-scoped FastTrack pattern"
+    description: "Dynamics 365 Finance and Operations -- X++, AOT, DMF, batch, ER, F&O-native SSRS; feature-scoped FastTrack pattern"
 
   - name: integration
     version: 1.0.0

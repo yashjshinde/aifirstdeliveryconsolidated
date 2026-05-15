@@ -1,0 +1,31 @@
+artifactType: pbi-dataset
+displayName: "Power BI Dataset (semantic model)"
+pattern: schema-asset
+sourcePaths:
+  - "**/*.pbip/**.Dataset/model.tmdl"
+  - "**/*.pbip/**.Dataset/database.tmdl"
+  - "**/*.pbip/**.Dataset/tables/*.tmdl"
+extractors:
+  name: "**.Dataset folder name (without .Dataset suffix)"
+  tables: "tables/*.tmdl > table declarations"
+  columns: "tables/*.tmdl > table > column declarations"
+  measures: "tables/*.tmdl > table > measure declarations (DAX bodies verbatim)"
+  relationships: "model.tmdl > relationships"
+  storageMode: "tables/*.tmdl > table > sourceLineageTag (Import / DirectQuery / Dual)"
+  hierarchies: "tables/*.tmdl > table > hierarchy"
+  rlsRoles: "model.tmdl > role > tablePermissions[*].filterExpression"
+  olsPerspectives: "model.tmdl > perspective definitions"
+  refreshPolicy: "tables/*.tmdl > table > refreshPolicy"
+  partitions: "tables/*.tmdl > table > partition declarations"
+crossRefs:
+  - { type: pbi-dataflow-gen1, link: "table.source references dataflow.workspace + dataflow.name" }
+  - { type: pbi-dataflow-gen2, link: "table.source references Fabric lakehouse" }
+  - { type: pbi-report, link: "report.dataset.id == artifact.id" }
+  - { type: entity, link: "table.source == Dataverse entity (logical name)" }
+  - { type: data-entity, link: "table.source == FO data-entity (via BYOD or Synapse Link)" }
+requires: []
+validators:
+  - validate_entity_field_dictionary
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/reporting/datasets/{name}.md"

@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spec-driven-dev/schemas/brownfield-gap-log.v1.json",
+  "title": "brownfield gap log -- single review artefact per ADR-0007",
+  "description": "Typed gap entries emitted by the brownfield self-healing retry loop when validators cannot be satisfied after N retries OR when inputs are missing / binary-only. Reviewers read this file as the single artefact representing all documentation gaps. See design/agents/brownfield.md and design/adr/0007-brownfield-auto-mode-self-healing.md.",
+  "type": "object",
+  "required": ["schemaVersion", "project", "generatedAt", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "project": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "totalEntries": { "type": "integer", "minimum": 0 },
+        "byCategory": {
+          "type": "object",
+          "patternProperties": {
+            "^(BLOCKED-BY-BINARY|MISSING-INPUT|INFERENCE-LOW-CONFIDENCE|EXCEEDED-RETRY-LIMIT|UNSUPPORTED-PATTERN)$": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "bySeverity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "blocker": { "type": "integer", "minimum": 0 },
+            "warning": { "type": "integer", "minimum": 0 },
+            "info": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/gapEntry" }
+    }
+  },
+  "definitions": {
+    "gapEntry": {
+      "type": "object",
+      "required": ["id", "category", "artifact", "reason", "severity", "timestamp"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "UUID v4",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "category": {
+          "enum": [
+            "BLOCKED-BY-BINARY",
+            "MISSING-INPUT",
+            "INFERENCE-LOW-CONFIDENCE",
+            "EXCEEDED-RETRY-LIMIT",
+            "UNSUPPORTED-PATTERN"
+          ],
+          "description": "Typed reason the doc-generation step could not produce a passing doc. BLOCKED-BY-BINARY: binary input with no source available (e.g., .pbix without PBIP, .msapp without unpack). MISSING-INPUT: expected file absent. INFERENCE-LOW-CONFIDENCE: heuristic inference produced ambiguous output. EXCEEDED-RETRY-LIMIT: N validator retries exhausted; doc written with KNOWN_GAP markers. UNSUPPORTED-PATTERN: no binding matches the artifact type."
+        },
+        "artifact": {
+          "type": "string",
+          "description": "Path or identifier of the artefact that could not be documented (e.g., source file path or inventory artifact-id)."
+        },
+        "artifactType": {
+          "type": "string",
+          "description": "Inventory artifact-type (e.g., 'plugin', 'canvas-app', 'pbi-dataset'). Empty when the gap is at the scan level (no artefact emitted)."
+        },
+        "platform": {
+          "enum": [
+            "d365-ce",
+            "d365-fo",
+            "integration",
+            "reporting",
+            "power-apps",
+            "power-pages",
+            "custom-pages"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "description": "Short one-line reason. Validators produce this text; do not paraphrase."
+        },
+        "whatWouldUnblock": {
+          "type": "string",
+          "description": "One-line hint for the reviewer: what input / source / detail would let the agent finish the doc."
+        },
+        "severity": {
+          "enum": ["blocker", "warning", "info"],
+          "description": "blocker = a reviewer must address before downstream agents consume. warning = doc gap; downstream proceeds with entry surfaced. info = acknowledgement (e.g., module detected but no instances of artifact-X)."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "validatorsFailed": {
+          "type": "array",
+          "description": "Validator names that fired (populated for category=EXCEEDED-RETRY-LIMIT).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "retryAttempts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many retry attempts ran before the gap was logged (typically 3 max per project.config.yaml brownfield.retry-limit)."
+        },
+        "writtenDocPath": {
+          "type": "string",
+          "description": "Path to the doc that was written with KNOWN_GAP markers (populated for category=EXCEEDED-RETRY-LIMIT; empty when no doc was written)."
+        },
+        "binding": {
+          "type": "string",
+          "description": "Path to the binding YAML used (e.g., templates/bindings/d365-ce/plugin.binding.yaml). Empty when category=UNSUPPORTED-PATTERN."
+        }
+      }
+    }
+  }
+}

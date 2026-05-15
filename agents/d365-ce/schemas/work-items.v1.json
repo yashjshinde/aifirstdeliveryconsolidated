@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spec-driven-dev/schemas/work-items.v1.json",
+  "title": "work-items.yaml — per-project ALM traceability source",
+  "description": "One file per project, partitioned by agent then by feature. Single source of truth for the local-to-ALM mapping. See design/08-traceability.md.",
+  "type": "object",
+  "required": ["schemaVersion", "project", "agents"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "project": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "agents": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z0-9][a-z0-9-]*$": {
+          "type": "object",
+          "required": ["features"],
+          "additionalProperties": false,
+          "properties": {
+            "features": {
+              "type": "object",
+              "patternProperties": {
+                "^[a-z0-9][a-z0-9-]*$": {
+                  "$ref": "#/definitions/featureTraceability"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "featureTraceability": {
+      "type": "object",
+      "description": "Per-feature traceability — items grouped by L1-L4 hierarchy level. The level names are project-configurable in project.config.yaml alm.hierarchy.",
+      "patternProperties": {
+        "^L[1-6]$": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/workItem" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "workItem": {
+      "type": "object",
+      "required": ["uid", "title", "alm-type"],
+      "additionalProperties": false,
+      "properties": {
+        "uid": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9-]+$",
+          "description": "Stable local identifier (e.g., 'ce-cm-L1-01'). Never changes once assigned. Letters case-preserving."
+        },
+        "parent": {
+          "type": "string",
+          "description": "uid of the parent work item (next-higher L). Empty for L1."
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "alm-type": {
+          "type": "string",
+          "description": "Maps to one of project.config.yaml alm.hierarchy values (e.g., 'Epic', 'Feature', 'User Story', 'Task')."
+        },
+        "alm-id": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "string" }
+          ],
+          "description": "ID returned by ADO or JIRA after /alm push. Empty before first push."
+        },
+        "alm-state": { "type": "string", "description": "Mirrored ALM state (e.g., 'New', 'Active', 'Closed')" },
+        "section-refs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z]{2,5}-[0-9]+$" },
+          "description": "Stable section IDs from spec/plan/TDD that this work item realises (e.g., 'FR-01', 'TS-03', 'TC-07')."
+        },
+        "task-card": { "type": "string", "description": "Relative path to tasks/NN-{slug}.md when alm-type is the lowest hierarchy level" },
+        "output-path": { "type": "string", "description": "Relative path to the produced code/artefact folder" },
+        "lastSynced": { "type": "string", "format": "date-time" },
+        "syncHash": { "type": "string", "description": "Content hash at last sync; used by /alm push fail-on-conflict strategy" }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+artifactType: logic-app-consumption
+displayName: "Logic App (Consumption tier)"
+pattern: integration-asset
+sourcePaths:
+  - "**/Microsoft.Logic/workflows/*.json"
+  - "**/{name}.workflow.json"
+extractors:
+  name: "ARM resource > name"
+  resourceId: "ARM resource > id"
+  location: "ARM resource > location"
+  trigger: "definition > triggers[*]"
+  triggerType: "definition > triggers[*].type"
+  triggerRecurrence: "definition > triggers[*].recurrence"
+  actions: "definition > actions[*]"
+  actionsOrder: "definition > actions[*] > runAfter (topologically sorted)"
+  connectionReferences: "ARM resource > properties.parameters.$connections.value"
+  catchScopes: "definition > actions[*].type == Scope AND runAfter has Failed/TimedOut"
+  retryPolicy: "definition > actions[*].inputs.retryPolicy"
+crossRefs:
+  - { type: api-connection, link: "connectionReferences[*] -> api-connection.name" }
+  - { type: function-per-trigger, link: "action.type == Function AND action.functionId match" }
+  - { type: sb-topic, link: "action.type == ServiceBus" }
+  - { type: key-vault, link: "action references @Microsoft.KeyVault" }
+requires: []
+validators:
+  - validate_flow_runbook
+  - validate_integration_contract
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/integration/logic-apps/{name}.md"

@@ -1,0 +1,20 @@
+artifactType: security-role
+displayName: "Dataverse Security Role"
+pattern: security-asset
+sourcePaths:
+  - "Roles/*.xml"
+extractors:
+  name: "Roles/{name}.xml > Role/RoleName"
+  description: "Roles/{name}.xml > Role/RoleDescription"
+  businessUnit: "Roles/{name}.xml > Role/BusinessUnit"
+  inheritsFrom: "Roles/{name}.xml > Role/InheritsFrom"
+  privileges: "Roles/{name}.xml > Role/RolePrivileges/RolePrivilege"
+  # For each privilege: extract Entity / Privilege name (Read/Write/Create/Delete/Append/AppendTo/Share/Assign) + access level (None/User/BU/Parent:Child/Organization)
+crossRefs:
+  - { type: entity, link: "privilege.entity name => entity.name" }
+  - { type: team, link: "team.roles includes artifact.name" }
+requires: []
+validators:
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/security/roles/{name}.md"

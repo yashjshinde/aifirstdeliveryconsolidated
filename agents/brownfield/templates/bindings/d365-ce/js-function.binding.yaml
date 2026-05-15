@@ -1,0 +1,22 @@
+artifactType: js-function
+displayName: "JavaScript Web Resource Function"
+pattern: code-asset
+sourcePaths:
+  - "WebResources/*.js"
+extractors:
+  # Per top-level function within each .js web resource
+  webResourceName: "WebResources/{file}.js > parent file name"
+  functionName: "WebResources/{file}.js > top-level function declarations"
+  signature: "WebResources/{file}.js > function declaration signature"
+  body: "WebResources/{file}.js > function body (verbatim)"
+  xrmApiCalls: "WebResources/{file}.js > Xrm.* usage"
+  domAccess: "WebResources/{file}.js > document.* / window.* usage (flagged)"
+  webApiCalls: "WebResources/{file}.js > Xrm.WebApi.* usage"
+crossRefs:
+  - { type: form, link: "form.events.handler == artifact.functionName" }
+  - { type: ribbon-diff, link: "ribbon.CommandDefinition.Actions.JavaScriptFunction == artifact.functionName" }
+requires: []
+validators:
+  - validate_plugin_logic   # reused for JS body narrative
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/code/js/{webResourceName}.{functionName}.md"

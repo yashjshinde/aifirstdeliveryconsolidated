@@ -1,0 +1,77 @@
+---
+description: Publish _brownfield outputs for downstream agents (inventory, gap-log, coverage, impact-map)
+agent: brownfield
+phase: HANDOFF
+gates: []
+---
+
+# /handoff
+
+> Publish the brownfield outputs that downstream agents (CE / FO / Integration / Reporting / solution-estimate / solution-architect) consume when the project runs in `mode: brownfield`. Emits `handoff.v1` envelopes per target agent and finalises the `_brownfield/` deliverables.
+
+## Usage
+
+```
+/handoff [--project <name>] [--targets <comma-separated>]
+```
+
+`--targets` defaults to all enabled domain agents per `project.config.yaml agents-enabled`.
+
+## Pre-conditions
+
+- `/generate` (or the manual sequence `/scan` -> `/document` -> `/fdd /tdd /blueprint`) has completed
+- `_brownfield/inventory.json` valid against `schemas/brownfield-inventory.v1.json`
+- `_brownfield/gap-log.json` valid against `schemas/brownfield-gap-log.v1.json`
+
+## Inputs
+
+- `_brownfield/inventory.json`
+- `_brownfield/gap-log.json`
+- `_brownfield/coverage-report.md`
+- `_brownfield/docs-generated/architecture/solution-blueprint.md`
+- `_brownfield/docs-generated/architecture/integration-topology.md`
+- `_brownfield/docs-generated/functional/functional-overview.md`
+- `_brownfield/docs-generated/technical/technical-overview.md`
+
+## Execution flow
+
+1. Build `impact-map.json` from per-artifact cross-references:
+   - Map every artefact to its consumers / dependents
+   - Used by `/impact` in each domain agent
+2. For each target agent in `--targets`:
+   - Build `handoff.v1` envelope with:
+     - `sourceAgent: brownfield`, `targetAgent: <agent>`
+     - `targetArtifact: brownfield-inventory`
+     - `payload`: subset of `inventory.platforms.<relevant>` for the target agent
+     - `references`: paths to `coverage-report.md`, `gap-log.md`, relevant synthesis docs
+   - Validate against `schemas/handoff.v1.json`
+   - Write `projects/{p}/_handoffs/brownfield-to-{target}.handoff.json`
+3. Update `project.config.yaml mode: brownfield` confirmation marker (`brownfield.handed-off-at: <ts>`)
+4. Print summary table: target agents notified + their handoff paths
+
+## Output
+
+- `projects/{p}/_brownfield/impact-map.json`
+- `projects/{p}/_handoffs/brownfield-to-{target}.handoff.json` (one per target)
+- `project.config.yaml` updated with `brownfield.handed-off-at` timestamp
+
+## Targets
+
+Default downstream consumers:
+
+| Target agent | Consumes |
+|---|---|
+| `d365-ce` | CE inventory + cross-references for `/impact` during feature planning |
+| `d365-fo` | FO inventory subset |
+| `integration` | Integration inventory subset (Functions / Logic Apps / ADF / Service Bus / APIM) |
+| `reporting` | Reporting inventory subset (datasets / dataflows / reports / RLS roles) |
+| `solution-estimate` | Full inventory for brownfield multipliers in estimation (per [ADR-0009](../../../design/adr/0009-solution-estimate-consolidated.md)) |
+| `solution-architect` | Full inventory + synthesis docs as input to unified blueprint and prototype |
+| `alm` | Gap-log entries as candidate work items (when gap is severity:blocker) |
+
+## See also
+
+- [`schemas/handoff.v1.json`](../../schemas/handoff.v1.json)
+- [`schemas/brownfield-inventory.v1.json`](../../schemas/brownfield-inventory.v1.json)
+- [`schemas/brownfield-gap-log.v1.json`](../../schemas/brownfield-gap-log.v1.json)
+- [design/09-orchestration-patterns.md § brownfield handoffs](../../../design/09-orchestration-patterns.md)

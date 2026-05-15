@@ -1,0 +1,71 @@
+---
+description: Hard-delete an ALM work item by ID (requires --confirm)
+agent: alm
+phase: ALM
+gates: []
+---
+
+# /alm cleanup
+
+> Destructive operation. Deletes the ALM work item identified by `<artifact-id>` and removes the corresponding local entry from `work-items.yaml`. Requires explicit `--confirm`. No-op without it.
+
+## Usage
+
+```
+/alm cleanup <artifact-id> --confirm [--project <name>] [--dry-run]
+```
+
+`<artifact-id>`: either an `almId` (e.g., `47892`) or a `localUID` (e.g., `ce-case-management-L4-12`).
+
+## Flags
+
+| Flag | Default | Effect |
+|---|---|---|
+| `--confirm` | required | Without this, the command refuses to run (prevents accidental deletion) |
+| `--dry-run` | no | Preview deletion target + cascade impact; **no writes** |
+
+## Inputs
+
+- `project.config.yaml alm.*`
+- `projects/{p}/work-items.yaml`
+- `projects/{p}/{agent}/features/{f}/traceability.yaml`
+
+## Execution flow
+
+1. Resolve `<artifact-id>`:
+   - If looks like a number → treat as ALM id (`almId`)
+   - If matches the `localUID` regex (`^[a-z]+-[a-z0-9-]+-L[1-4]-\d+$`) → treat as local id
+2. Look up the work item in both `work-items.yaml` and ALM.
+3. Compute cascade impact: descendant work items (children, grandchildren) — ADO links via `System.LinkTypes.Hierarchy-Forward`; JIRA via Epic links / sub-task parents.
+4. If cascade impact > 0 AND no `--cascade` flag (not supported in v1): refuse; instruct user to cleanup descendants first.
+5. On `--dry-run`: print planned deletion + cascade preview; exit 0.
+6. Without `--dry-run` (requires `--confirm` already validated):
+   - Call MCP `alm_delete_work_item({id})`
+   - Remove entry from local `work-items.yaml`
+   - Remove corresponding `traceability.yaml` entry
+7. Render `projects/{p}/alm-reports/cleanup-{ts}.md` with the deletion + correlation id from ALM.
+
+## What this does NOT do (v1)
+
+- **Cascade delete**: not supported in v1; user must cleanup descendants first. Deferred to a follow-on `--cascade` flag once a safety review pass on the cascade pattern is done.
+- **Wiki page deletion**: not supported; ALM wikis are versioned and accumulate. Manual cleanup via the ALM UI.
+- **Test plan deletion**: protected against accidental loss. Refused by `/alm cleanup`; user can delete plans manually via ALM UI.
+
+## Output
+
+- ALM work item deleted (when not dry-run)
+- `projects/{p}/work-items.yaml` updated
+- `projects/{p}/{agent}/features/{f}/traceability.yaml` updated
+- `projects/{p}/alm-reports/cleanup-{ts}.md` audit entry
+
+## Safety rails
+
+- `--confirm` MUST be present
+- Without `--cascade`, items with descendants are refused
+- Status of work item must NOT be `Closed` / `Done` (those represent shipped work; refuse delete and instruct user to use `--force-shipped` once the safety review on that flag is done — also a follow-on)
+- ALM API errors surface in the report with correlation id; the local-side mutation is rolled back if the API call fails
+
+## See also
+
+- [design/agents/alm.md § /alm cleanup](../../../design/agents/alm.md)
+- [constitution/02-alm-conventions.md](../../constitution/02-alm-conventions.md)

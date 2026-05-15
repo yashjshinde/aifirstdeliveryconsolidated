@@ -1,0 +1,27 @@
+---
+description: Read .workflow.json and suggest the next command
+agent: reporting
+phase: utility
+gates: []
+---
+
+# /next
+
+> Utility. Reads `.workflow.json` and prints eligible next commands per `workflow.yaml`.
+
+## Usage
+
+```
+/next [--feature <slug>] [--project <name>]
+```
+
+## Execution flow
+
+1. Load `.workflow.json`.
+2. Call `workflow_next` MCP tool.
+3. Print best-next, parallel-eligible, and PENDING gates.
+
+## See also
+
+- [workflow.yaml](../../workflow.yaml)
+- [design/11-mcp-server.md § workflow_next](../../../design/11-mcp-server.md)

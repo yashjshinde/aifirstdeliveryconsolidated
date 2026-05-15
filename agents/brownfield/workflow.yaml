@@ -1,0 +1,87 @@
+# workflow.yaml — declarative DAG of phases, states, transitions, hard gates
+#
+# Single source of truth for the spec-driven development workflow. Every command reads this file
+# (mirrored into each agent folder by the publish pipeline per ADR-0004) to know:
+#   - what state the feature should be in before this command can run
+#   - what state the feature transitions to after this command succeeds
+#   - which transitions are hard-gated vs advisory
+#   - which states can run in parallel after a given gate
+#
+# Each per-feature .workflow.json (schema: workflow-state.v1) tracks the current state of one feature.
+# Every command reads .workflow.json first; if the required upstream gate is not APPROVED, the command
+# refuses with a clear error and suggests the next action.
+#
+# Validated against: schemas/workflow-config.v1.json (not yet authored; future bk item)
+#
+# See: design/04-workflow-gates.md, design/adr/0001-review-scope-spec-only.md, design/adr/0006-doc-scope-domain-vs-feature.md
+
+version: 1
+
+phases:
+  - name: DEFINE
+    states:
+      - SPEC_DRAFT
+      - SPEC_REVIEWED         # gate: /review produced spec-review.md
+      - SPEC_APPROVED         # hard gate: /review --approve passed
+      - SPEC_SPLIT             # optional, conditional: /split emitted handoffs for mixed-domain specs
+
+  - name: DESIGN
+    states:
+      - PLAN_DRAFT
+      - PLAN_CLARIFIED         # hard gate: /clarify --approve passed (consumes plan-review.checklist.md per ADR-0001)
+      - TDD_DRAFT              # parallel-eligible after PLAN_CLARIFIED
+      - BLUEPRINT_DRAFT        # parallel-eligible after PLAN_CLARIFIED
+      - FDD_DRAFT              # parallel-eligible after SPEC_APPROVED
+      - TEST_PLAN_DRAFT        # parallel-eligible after SPEC_APPROVED
+
+  - name: BUILD
+    states:
+      - TASK_DRAFT
+      - TASK_VALIDATED         # hard gate: /validate --approve passed
+      - IMPLEMENTING
+      - IMPLEMENTED
+      - DOCUMENTED
+
+transitions:
+  # DEFINE phase
+  SPEC_DRAFT -> SPEC_REVIEWED:    { command: "/review",          gate: false }
+  SPEC_REVIEWED -> SPEC_APPROVED: { command: "/review --approve", gate: true  }   # HARD GATE — required before /plan
+  SPEC_APPROVED -> SPEC_SPLIT:    { command: "/split",            gate: false, conditional: "mixed-domain" }
+
+  # SPEC_APPROVED enables parallel work
+  SPEC_APPROVED -> PLAN_DRAFT:        { command: "/plan",       gate: false }
+  SPEC_APPROVED -> FDD_DRAFT:         { command: "/fdd",        gate: false }   # parallel
+  SPEC_APPROVED -> TEST_PLAN_DRAFT:   { command: "/test-plan",  gate: false }   # parallel
+
+  # DESIGN phase
+  PLAN_DRAFT -> PLAN_CLARIFIED:    { command: "/clarify --approve", gate: true }   # HARD GATE — required before /task
+  PLAN_CLARIFIED -> TASK_DRAFT:    { command: "/task",       gate: false }
+  PLAN_CLARIFIED -> TDD_DRAFT:     { command: "/tdd",        gate: false }   # parallel
+  PLAN_CLARIFIED -> BLUEPRINT_DRAFT: { command: "/blueprint", gate: false } # parallel
+
+  # BUILD phase
+  TASK_DRAFT -> TASK_VALIDATED:        { command: "/validate --approve",  gate: true }   # HARD GATE — required before /implement
+  TASK_VALIDATED -> IMPLEMENTING:      { command: "/implement",           gate: false }
+  IMPLEMENTING -> IMPLEMENTED:         { command: "/implement --complete", gate: false }
+  IMPLEMENTED -> DOCUMENTED:           { command: "/document",            gate: false }
+
+# Hard gates — required upstream states before downstream commands can run.
+# The command refuses to execute if the required gate's status in .workflow.json is not "APPROVED".
+# Override: --force-skip-gate (logged loudly in .workflow.json history; visible in /status).
+hard-gates:
+  - SPEC_APPROVED         # required before /plan
+  - PLAN_CLARIFIED        # required before /task
+  - TASK_VALIDATED        # required before /implement
+
+# Parallel-eligible states — multiple states can be active simultaneously after the gate above unlocks them.
+# /next surfaces all eligible commands when multiple parallel transitions are available.
+parallel-after:
+  SPEC_APPROVED:   [FDD_DRAFT, TEST_PLAN_DRAFT, PLAN_DRAFT]
+  PLAN_CLARIFIED:  [TDD_DRAFT, BLUEPRINT_DRAFT, TASK_DRAFT]
+
+# Notes:
+# - /review applies to SPEC only per ADR-0001. /clarify gates plan; /validate gates task.
+# - FDD / TDD / blueprint / test-plan have no separate /review invocation; their checklists are consumed
+#   inline by the generating command itself (e.g., /fdd self-checks against fdd-review.checklist.md).
+# - docScope branching (domain vs feature target paths for /fdd/tdd/blueprint per ADR-0006) is enforced
+#   internal to the command's file-resolution logic, not visible in this gate DAG.

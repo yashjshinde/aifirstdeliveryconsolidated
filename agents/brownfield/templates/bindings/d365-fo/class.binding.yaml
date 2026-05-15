@@ -1,0 +1,26 @@
+artifactType: class
+displayName: "F&O X++ Class"
+pattern: code-asset
+sourcePaths:
+  - "AxClass/*.xml"
+  - "AxClass/*.xpp"
+extractors:
+  name: "AxClass/{name}.xml > AxClass/Name"
+  extends: "AxClass/{name}.xml > AxClass/Extends"
+  isAbstract: "AxClass/{name}.xml > AxClass/IsAbstract"
+  isFinal: "AxClass/{name}.xml > AxClass/IsFinal"
+  attributes: "AxClass/{name}.xml > AxClass/Attributes/AxAttribute"
+  isCoCExtension: "AxClass/{name}.xpp > class declaration > [ExtensionOf(classStr(...))]"
+  methods: "AxClass/{name}.xml > AxClass/Methods/AxMethod"
+  methodSignatures: "AxClass/{name}.xpp > method declarations"
+  methodBodies: "AxClass/{name}.xpp > method bodies (verbatim per method)"
+crossRefs:
+  - { type: class, link: "extends ? targetClass.name : null" }
+  - { type: class, link: "isCoCExtension ? hookedClass.name : null" }
+  - { type: table, link: "method.references tables" }
+  - { type: data-entity, link: "method.references data entities" }
+requires: []
+validators:
+  - validate_plugin_logic   # reused for X++ method bodies
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/code/xpp-classes/{name}.md"

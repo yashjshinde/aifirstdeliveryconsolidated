@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spec-driven-dev/schemas/handoff.v1.json",
+  "title": "handoff envelope — cross-agent coordination manifest",
+  "description": "One handoff per cross-agent coordination event. Emitted by /split (federation handoff) or by /alm-extract (handoff to ALM agent). Consumed via MCP handoff_list / handoff_consume. See design/09-orchestration-patterns.md.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "project", "sourceAgent", "targetAgent", "artifactType", "status", "created"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": {
+      "type": "string",
+      "description": "Unique handoff id. Convention: {feature-slug}-{target-agent}-{NNN} where NNN is a same-feature counter."
+    },
+    "project": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "sourceAgent": {
+      "enum": ["d365-ce", "d365-fo", "integration", "reporting", "solution-estimate", "solution-architect", "brownfield", "alm"]
+    },
+    "targetAgent": {
+      "enum": ["d365-ce", "d365-fo", "integration", "reporting", "solution-estimate", "solution-architect", "brownfield", "alm"]
+    },
+    "feature": {
+      "type": "string",
+      "description": "Feature slug. Same name reused on the target side (the target agent's skeleton spec lands at projects/{p}/{targetAgent}/features/{feature}/)."
+    },
+    "artifactType": {
+      "enum": ["spec-split", "plan-dependency", "blueprint-aggregate", "alm-extract", "brownfield-inventory", "estimation-input"],
+      "description": "What this handoff is for. spec-split = /split emitted a skeleton spec; plan-dependency = /plan declared a cross-agent require; alm-extract = handoff to ALM agent for work-item push; brownfield-inventory = brownfield agent published inventory for domain agents to consume; estimation-input = handoff to solution-estimate aggregator."
+    },
+    "status": {
+      "enum": ["PENDING", "READY", "CONSUMED", "FAILED", "WAIVED"]
+    },
+    "payload": {
+      "type": "object",
+      "description": "Artifact-type-specific payload. For spec-split: pointer to source spec + scope summary + reason. For plan-dependency: required artifact path. For alm-extract: work-items.yaml delta + section refs. For brownfield-inventory: inventory.json path + module-detection results. For estimation-input: pointer to RFP / requirements doc.",
+      "additionalProperties": true
+    },
+    "created": { "type": "string", "format": "date-time" },
+    "createdBy": { "type": "string", "description": "user identifier or command id" },
+    "consumed": { "type": "string", "format": "date-time" },
+    "consumedBy": { "type": "string" },
+    "notes": { "type": "string" }
+  }
+}

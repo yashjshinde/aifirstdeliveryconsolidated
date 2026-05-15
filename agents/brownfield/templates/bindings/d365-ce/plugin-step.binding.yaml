@@ -1,0 +1,23 @@
+artifactType: plugin-step
+displayName: "Dataverse Plugin Step Registration"
+pattern: code-asset
+sourcePaths:
+  - "SdkMessageProcessingSteps/*.xml"
+extractors:
+  name: "SdkMessageProcessingSteps/{name}.xml > SdkMessageProcessingStep/Name"
+  message: "SdkMessageProcessingSteps/{name}.xml > SdkMessageProcessingStep/SdkMessageId/Name"
+  primaryEntity: "SdkMessageProcessingSteps/{name}.xml > SdkMessageProcessingStep/PrimaryEntityName"
+  stage: "SdkMessageProcessingSteps/{name}.xml > SdkMessageProcessingStep/Stage"
+  mode: "SdkMessageProcessingSteps/{name}.xml > SdkMessageProcessingStep/Mode"
+  rank: "SdkMessageProcessingSteps/{name}.xml > SdkMessageProcessingStep/Rank"
+  filteringAttributes: "SdkMessageProcessingSteps/{name}.xml > SdkMessageProcessingStep/FilteringAttributes"
+  pluginTypeName: "SdkMessageProcessingSteps/{name}.xml > SdkMessageProcessingStep/PluginTypeName"
+  images: "SdkMessageProcessingSteps/{name}.xml > SdkMessageProcessingStepImages/SdkMessageProcessingStepImage"
+crossRefs:
+  - { type: plugin, link: "plugin.className == artifact.pluginTypeName" }
+  - { type: entity, link: "entity.name == artifact.primaryEntity" }
+requires: []
+validators:
+  - validate_plugin_logic
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/code/plugin-steps/{name}.md"

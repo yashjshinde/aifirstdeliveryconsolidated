@@ -1,0 +1,21 @@
+artifactType: plugin
+displayName: "Dataverse Plugin Class"
+pattern: code-asset
+sourcePaths:
+  - "PluginTypes/*.xml"
+  - "PluginAssemblies/*.cs"   # source preferred when present
+extractors:
+  name: "PluginTypes/{name}.xml > PluginType/TypeName"
+  namespace: "PluginTypes/{name}.xml > PluginType/PluginAssemblyName"
+  assemblyVersion: "PluginTypes/{name}.xml > PluginType/AssemblyVersion"
+  className: "PluginTypes/{name}.xml > PluginType/TypeName"
+  executeBody: "PluginAssemblies/{className}.cs > Execute()"   # only when source present
+  baseInterfaces: "PluginAssemblies/{className}.cs > class.implements"
+crossRefs:
+  - { type: plugin-step, link: "step.PluginTypeId == artifact.id" }
+  - { type: entity, link: "step.PrimaryEntityName for any step of artifact" }
+requires: []
+validators:
+  - validate_plugin_logic
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/code/plugins/{name}.md"

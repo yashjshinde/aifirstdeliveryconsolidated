@@ -1,0 +1,21 @@
+artifactType: view
+displayName: "Dataverse System or Personal View"
+pattern: ui-asset
+sourcePaths:
+  - "Entities/*/SavedQueries/*.xml"
+extractors:
+  name: "Entities/*/SavedQueries/{name}.xml > SavedQuery/name"
+  returnedTypeCode: "Entities/*/SavedQueries/{name}.xml > SavedQuery/returnedtypecode"
+  queryType: "Entities/*/SavedQueries/{name}.xml > SavedQuery/querytype"
+  isDefault: "Entities/*/SavedQueries/{name}.xml > SavedQuery/isdefault"
+  fetchXml: "Entities/*/SavedQueries/{name}.xml > SavedQuery/fetchxml"
+  layoutXml: "Entities/*/SavedQueries/{name}.xml > SavedQuery/layoutxml"
+  visibleColumns: "Entities/*/SavedQueries/{name}.xml > SavedQuery/layoutxml/grid/row/cell"
+crossRefs:
+  - { type: entity, link: "entity.name == artifact.returnedTypeCode" }
+  - { type: form, link: "form.subgrids.viewId == artifact.id" }
+requires: []
+validators:
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/ui/views/{returnedTypeCode}.{name}.md"

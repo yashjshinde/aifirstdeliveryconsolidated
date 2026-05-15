@@ -1,0 +1,23 @@
+artifactType: bpf
+displayName: "Business Process Flow"
+pattern: process-asset
+sourcePaths:
+  - "Workflows/*.xml"   # filter by Category == 4
+extractors:
+  name: "Workflows/{name}.xml > Workflow/Name"
+  primaryEntity: "Workflows/{name}.xml > Workflow/PrimaryEntity"
+  scope: "Workflows/{name}.xml > Workflow/Scope"
+  status: "Workflows/{name}.xml > Workflow/StateCode"
+  category: "Workflows/{name}.xml > Workflow/Category"   # must equal 4
+  stages: "Workflows/{name}.xml > Workflow/Activities/*[type=BusinessProcessStage]"
+  stageEntries: "Workflows/{name}.xml > stage/StageItems/StageItem"
+  branchingLogic: "Workflows/{name}.xml > BranchCondition"
+crossRefs:
+  - { type: entity, link: "entity.name == artifact.primaryEntity" }
+  - { type: classic-workflow, link: "workflow.parentBpf == artifact.id" }
+requires: []
+validators:
+  - validate_flow_runbook
+  - validate_no_grouping
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/processes/bpfs/{name}.md"

@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spec-driven-dev/schemas/project-config.v1.json",
+  "title": "project.config.yaml — per-project configuration",
+  "description": "Schema for projects/{project}/project.config.yaml. One file controls everything project-wide: agents enabled, mode (greenfield/brownfield), prefixes, multilingual scope, OOB overrides, unit-test policy, NFRs, ALM tool + hierarchy. See design/05-project-layout.md.",
+  "type": "object",
+  "required": ["name", "mode", "agents-enabled", "alm"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Project slug; kebab-case. Used as folder name under projects/."
+    },
+    "description": { "type": "string" },
+    "mode": {
+      "enum": ["greenfield", "brownfield"],
+      "description": "Greenfield = new build; brownfield = reverse-engineering an existing solution."
+    },
+    "brownfieldPath": {
+      "type": "string",
+      "description": "Path to _brownfield/ folder, required when mode = brownfield."
+    },
+    "agents-enabled": {
+      "type": "array",
+      "items": {
+        "enum": ["d365-ce", "d365-fo", "integration", "reporting", "solution-estimate", "solution-architect", "brownfield", "alm"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "prefixes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "publisher": { "type": "string", "description": "CE solution publisher prefix (e.g., 'acme')" },
+        "solutionName": { "type": "string" },
+        "schemaPrefix": { "type": "string" }
+      }
+    },
+    "multilingual": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "crm": { "type": "boolean" },
+        "portal": { "type": "boolean" },
+        "canvas": { "type": "boolean" },
+        "reports": { "type": "boolean" },
+        "defaultLanguage": { "type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$" },
+        "supportedLanguages": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "oobOverrides": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "businessRules": { "enum": ["prefer-business-rule", "prefer-js"] },
+        "complexPlugin": { "enum": ["prefer-plugin", "prefer-azure-function"] }
+      }
+    },
+    "unitTestPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plugin": { "enum": ["required", "optional", "none"] },
+        "js": { "enum": ["required", "optional", "none"] },
+        "pcf": { "enum": ["required", "optional", "none"] },
+        "canvas": { "enum": ["required", "optional", "none"] },
+        "portal": { "enum": ["required", "optional", "none"] },
+        "ssrs": { "enum": ["required", "optional", "none"] },
+        "power-bi": { "enum": ["required", "optional", "none"] }
+      }
+    },
+    "nfr": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "responseTimeMsP95": { "type": "number", "minimum": 0 },
+        "availability": { "type": "number", "minimum": 0, "maximum": 100 },
+        "errorRate": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "alm": {
+      "type": "object",
+      "required": ["tool", "hierarchy"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "enum": ["ado", "jira"] },
+        "hierarchy": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "maxItems": 6,
+          "description": "Ordered hierarchy level names (e.g., [Epic, Feature, User Story, Task] for ADO, or [Initiative, Epic, Story, Sub-task] for JIRA)."
+        },
+        "priorityMap": {
+          "type": "object",
+          "patternProperties": {
+            "^(critical|high|medium|low|trivial)$": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "syncOnApprove": { "type": "boolean", "description": "If true, /review --approve auto-pushes to ALM" },
+        "readOnlyLevels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Hierarchy levels that are pulled from ALM and may not be modified locally"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "ado": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "org": { "type": "string" },
+                "project": { "type": "string" },
+                "areaPath": { "type": "string" },
+                "iterationPath": { "type": "string" }
+              }
+            },
+            "jira": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "baseUrl": { "type": "string", "format": "uri" },
+                "projectKey": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "personas": {
+      "type": "array",
+      "description": "Persona list consumed by solution-architect /solution-prototype.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "name": { "type": "string" }
+        }
+      }
+    },
+    "estimation": {
+      "type": "object",
+      "description": "Consumed by solution-estimate agent.",
+      "additionalProperties": false,
+      "properties": {
+        "factorRatesOverride": { "type": "string", "description": "Path to project-specific factor-rates override YAML" },
+        "factorReviewGate": { "type": "boolean", "description": "If true, block ModuleOverallHrs.md until Proposed-Factors is reviewed" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "mode": { "const": "brownfield" } } },
+      "then": { "required": ["brownfieldPath"] }
+    }
+  ]
+}

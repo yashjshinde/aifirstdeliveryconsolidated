@@ -1,0 +1,28 @@
+{
+  "_comment": "Canonical Claude plugin manifest template. Rendered by Publish-Agents.ps1 (Job 3) into agents/{AGENT_NAME}/.claude-plugin/plugin.json. Placeholders: integration, 1.0.0, Merged event-driven + batch + data-migration: Azure Functions, Logic Apps, Service Bus, APIM, Event Grid, ADF, SFTP, SQL staging, bulk Dataverse, merged. See ADR-0004 for the plugin-distribution rationale.",
+
+  "name": "spec-driven-dev-integration",
+  "version": "1.0.0",
+  "description": "Merged event-driven + batch + data-migration: Azure Functions, Logic Apps, Service Bus, APIM, Event Grid, ADF, SFTP, SQL staging, bulk Dataverse",
+
+  "author": {
+    "name": "Spec-Driven Development Platform"
+  },
+
+  "homepage": "",
+  "repository": "",
+  "license": "TBD",
+
+  "keywords": [
+    "spec-driven-development",
+    "d365",
+    "power-platform",
+    "integration",
+    "merged"
+  ],
+
+  "_meta": {
+    "generated-by": "tools/sync/Publish-Agents.ps1",
+    "do-not-edit": "Generated file. Hand-edits fail .github/workflows/check-publish-drift.yml. Author lives at tools/sync/plugin.template.json."
+  }
+}

@@ -1,0 +1,25 @@
+artifactType: table
+displayName: "F&O AOT Table"
+pattern: schema-asset
+sourcePaths:
+  - "AxTable/*.xml"
+extractors:
+  name: "AxTable/{name}.xml > AxTable/Name"
+  label: "AxTable/{name}.xml > AxTable/Label"
+  tableType: "AxTable/{name}.xml > AxTable/TableType"
+  primaryIndex: "AxTable/{name}.xml > AxTable/PrimaryIndex"
+  fields: "AxTable/{name}.xml > AxTable/Fields/AxTableField"
+  indexes: "AxTable/{name}.xml > AxTable/Indexes/AxTableIndex"
+  fieldGroups: "AxTable/{name}.xml > AxTable/FieldGroups/AxTableFieldGroup"
+  relations: "AxTable/{name}.xml > AxTable/Relations/AxTableRelation"
+  methods: "AxTable/{name}.xml > AxTable/Methods/AxMethod"
+crossRefs:
+  - { type: table-extension, link: "extension.target == artifact.name" }
+  - { type: fo-form, link: "form.dataSources.table == artifact.name" }
+  - { type: data-entity, link: "dataEntity.dataSources.table == artifact.name" }
+  - { type: class, link: "class.references[table].name == artifact.name" }
+requires: []
+validators:
+  - validate_entity_field_dictionary
+  - validate_evidence_chain
+outputPath: "docs-generated/technical/data-model/tables/{name}.md"

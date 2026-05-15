@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spec-driven-dev/schemas/alm-extract.v1.json",
+  "title": "alm-extract payload — plan/task → ALM work-item batch",
+  "description": "Payload extracted by /alm-extract for the ALM agent to push to ADO or JIRA. The receiving agent (alm) runs /alm push work-items against this payload. See design/agents/alm.md.",
+  "type": "object",
+  "required": ["schemaVersion", "project", "agent", "feature", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "project": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "agent": {
+      "enum": ["d365-ce", "d365-fo", "integration", "reporting", "solution-estimate", "solution-architect", "brownfield"],
+      "description": "Source agent (alm cannot be the source — alm consumes extracts)."
+    },
+    "feature": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "extractedAt": { "type": "string", "format": "date-time" },
+    "extractedFrom": {
+      "type": "object",
+      "description": "Source documents that contributed to this extract. Used by traceability and for re-extract diff.",
+      "additionalProperties": false,
+      "properties": {
+        "spec": { "type": "string" },
+        "plan": { "type": "string" },
+        "tdd": { "type": "string" },
+        "taskFolder": { "type": "string" },
+        "testPlanFolder": { "type": "string" }
+      }
+    },
+    "hierarchy": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Snapshot of project.config.yaml alm.hierarchy at extract time. Ordering matters."
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/extractItem" }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "newCount": { "type": "integer", "minimum": 0 },
+        "updateCount": { "type": "integer", "minimum": 0 },
+        "byLevel": {
+          "type": "object",
+          "patternProperties": {
+            "^L[1-6]$": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "extractItem": {
+      "type": "object",
+      "required": ["uid", "title", "alm-type", "level"],
+      "additionalProperties": false,
+      "properties": {
+        "uid": { "type": "string", "pattern": "^[a-zA-Z0-9-]+$" },
+        "parent": { "type": "string" },
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "description": "Markdown description. /alm push converts to target rich-text via converters/." },
+        "alm-type": { "type": "string", "description": "Maps to one of hierarchy values" },
+        "level": { "type": "string", "pattern": "^L[1-6]$" },
+        "alm-id": { "oneOf": [{ "type": "integer" }, { "type": "string" }] },
+        "alm-action": {
+          "enum": ["create", "update", "no-change"],
+          "description": "Computed by /alm-extract by comparing to work-items.yaml + last syncHash. /alm push respects this unless overridden by --create-only/--update-only."
+        },
+        "fields": {
+          "type": "object",
+          "description": "Free-form fields keyed by canonical field names (mapped to ADO/JIRA at push time by alm constitution/01-alm-mapping.md).",
+          "additionalProperties": true
+        },
+        "section-refs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z]{2,5}-[0-9]+$" }
+        },
+        "acceptance-criteria": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "test-cases": {
+          "type": "array",
+          "description": "Test case IDs that cover this item (S01-TC-001 etc.)",
+          "items": { "type": "string", "pattern": "^S[0-9]{2,3}-TC-[0-9]{3}$" }
+        }
+      }
+    }
+  }
+}
