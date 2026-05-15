@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from docx import Document; d = Document\\('Integration framework ADF.docx'\\); [print\\(p.text\\) for p in d.paragraphs]\")"
+    ]
+  }
+}

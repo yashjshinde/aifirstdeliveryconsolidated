@@ -1,0 +1,34 @@
+{
+  "name": "ds_adls_parquet",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "type": "Parquet",
+    "description": "Generic parquet dataset on ADLS. Used for /raw, /staged, /final, /masters, /audit etc.",
+    "annotations": ["opex-integration", "v1"],
+    "linkedServiceName": {
+      "referenceName": "ls_adls",
+      "type": "LinkedServiceReference",
+      "parameters": {
+        "url":                  "@dataset().adlsUrl",
+        "accountKeySecretName": "@dataset().adlsAccountKeySecretName"
+      }
+    },
+    "parameters": {
+      "container":              { "type": "String", "defaultValue": "opex-integration" },
+      "folder":                 { "type": "String" },
+      "fileName":               { "type": "String", "defaultValue": "*.parquet" },
+      "adlsUrl":                { "type": "String", "defaultValue": "https://stopexdev.dfs.core.windows.net" },
+      "adlsAccountKeySecretName": { "type": "String", "defaultValue": "kv-adls-accountkey" }
+    },
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileSystem":  "@dataset().container",
+        "folderPath":  "@dataset().folder",
+        "fileName":    "@dataset().fileName"
+      },
+      "compressionCodec": "snappy"
+    },
+    "schema": []
+  }
+}

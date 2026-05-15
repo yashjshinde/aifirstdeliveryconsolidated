@@ -1,0 +1,22 @@
+{
+  "name": "df_phase2_customer_inbound",
+  "type": "Microsoft.DataFactory/factories/dataflows",
+  "apiVersion": "2018-06-01",
+  "properties": {
+    "type": "MappingDataFlow",
+    "typeProperties": {
+      "sources": [],
+      "sinks": [],
+      "transformations": [],
+      "scriptLines": [
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    output(\n        ACCOUNT_NUMBER as string,\n        CUSTOMER_NAME as string,\n        ACCOUNT_STATUS as string,\n        ACCOUNT_TYPE as string,\n        EQUIPMET_DISCOUNT as string,\n        PARTS_DISCOUNT as string,\n        NATIONAL_DISCOUNT as string,\n        CATEGORY_CODE as string,\n        BILL_TO_ACCOUNT as string,\n        PRICE_LIST as string,\n        FREIGHT_TERMS as string,\n        SHIPPING_METHOD as string,\n        `Credit Hold` as string,\n        `Payment Term` as string,\n        `Large Customer` as string,\n        `Site Number` as string,\n        LAST_UPDATE_DATE as string,\n        REL_ACCOUNT_NUMBER as string,\n        CREATED_BY as string,\n        CREATION_DATE as string,\n        LAST_UPDATED_BY as string\n    ),\n    format: 'parquet'\n) ~> srcRaw",
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    broadcast: 'left',\n    output(\n        accountnumber as string,\n        accountid as string\n    ),\n    format: 'parquet'\n) ~> srcMasters_account",
+        "srcRaw derive(\n    __lookup_key_msdyn_billingaccount = BILL_TO_ACCOUNT\n) ~> dc_1",
+        "dc_1, srcMasters_account lookup(\n    __lookup_key_msdyn_billingaccount == srcMasters_account@accountnumber,\n    multiple: false,\n    pickup: 'any',\n    broadcast: 'left'\n) ~> lk_1",
+        "lk_1 derive(\n    msdyn_billingaccount = srcMasters_account@accountid\n) ~> dc_2",
+        "dc_2 derive(\n    accountnumber = toString(ACCOUNT_NUMBER),\n    msdyn_billingaccount = msdyn_billingaccount\n) ~> dc_3",
+        "dc_3 sink(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    format: 'parquet',\n    skipDuplicateMapInputs: true,\n    skipDuplicateMapOutputs: true,\n    errorHandlingOption: 'stopOnFirstError'\n) ~> sinkPhase2"
+      ]
+    }
+  }
+}

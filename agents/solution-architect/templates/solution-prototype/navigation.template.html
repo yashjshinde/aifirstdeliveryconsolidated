@@ -1,0 +1,46 @@
+<!--
+navigation.template.html - reusable navigation fragments injected into every page's
+{{MODULES_NAV}}, {{PERSONAS_NAV}}, {{JOURNEYS_NAV}}, {{DASHBOARDS_NAV}}, {{PERSONAS_OPTIONS}} placeholders.
+
+/solution-prototype renders this once per project and substitutes the resulting HTML fragments
+into the placeholders of every page template.
+
+Placeholders here are nested per-item; the outer loop iterates the project's discovered items.
+-->
+
+<!-- {{MODULES_NAV}} fragment (one <li> per module) -->
+<li class="sidebar-item{{ACTIVE_CLASS}}">
+  <a href="{{REL_PATH}}/modules/{{MODULE_SLUG}}.html">
+    <span class="sidebar-icon">{{MODULE_ICON}}</span>
+    {{MODULE_NAME}}
+  </a>
+</li>
+
+<!-- {{PERSONAS_NAV}} fragment (one <li> per persona) -->
+<li class="sidebar-item{{ACTIVE_CLASS}}">
+  <a href="{{REL_PATH}}/personas/{{PERSONA_SLUG}}.html">
+    <span class="sidebar-icon">{{PERSONA_INITIALS}}</span>
+    {{PERSONA_NAME}}
+  </a>
+</li>
+
+<!-- {{JOURNEYS_NAV}} fragment -->
+<li class="sidebar-item{{ACTIVE_CLASS}}">
+  <a href="{{REL_PATH}}/journeys/{{JOURNEY_SLUG}}.html">{{JOURNEY_NAME}}</a>
+</li>
+
+<!-- {{DASHBOARDS_NAV}} fragment -->
+<li class="sidebar-item{{ACTIVE_CLASS}}">
+  <a href="{{REL_PATH}}/dashboards/{{DASHBOARD_SLUG}}.html">{{DASHBOARD_NAME}}</a>
+</li>
+
+<!-- {{PERSONAS_OPTIONS}} fragment for the persona <select> in top nav (one <option> per persona) -->
+<option value="{{PERSONA_SLUG}}"{{SELECTED}}>{{PERSONA_NAME}}</option>
+
+<!--
+The renderer in /solution-prototype:
+  1. Reads project.config.yaml personas + agents-enabled
+  2. For each project page being rendered, computes REL_PATH (e.g., "../" from inside personas/, "" from index.html)
+  3. For each nav item, fills MODULE_SLUG / MODULE_NAME / etc., setting ACTIVE_CLASS=" sidebar-item-active" when the item matches the current page
+  4. Concatenates the resulting <li> elements and substitutes into the page's {{MODULES_NAV}} etc. placeholders
+-->

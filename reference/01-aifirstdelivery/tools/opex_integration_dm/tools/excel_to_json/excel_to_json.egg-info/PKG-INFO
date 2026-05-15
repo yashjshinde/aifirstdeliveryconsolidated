@@ -1,0 +1,80 @@
+Metadata-Version: 2.4
+Name: excel-to-json
+Version: 0.1.0
+Summary: Converts the analyst-authored mapping workbook into /config/entities/*.json files.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: openpyxl>=3.1.0
+Requires-Dist: click>=8.1.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4.0; extra == "dev"
+
+# excel-to-json
+
+Converts the analyst-authored mapping workbook (`Backup 01 CustomerDataMapping - Copy.xlsx`) into one JSON per sheet under `/config/entities/`.
+
+## Quick start
+
+```bash
+cd tools/excel_to_json
+python -m pip install -e .
+
+# from repo root:
+excel-to-json "Backup 01 CustomerDataMapping - Copy.xlsx" -o config/entities/
+```
+
+Or without installing:
+
+```bash
+python -m excel_to_json "<workbook>" -o config/entities/
+```
+
+## What the tool does
+
+1. Opens every sheet in the workbook.
+2. Reads the header row and maps the workbook columns to the `entity-mapping.schema.json` shape.
+3. For each data row, infers `transform.type` from the "Transformation Logic" prose using a deterministic ruleset:
+
+| Prose pattern | Inferred type |
+| --- | --- |
+| "Direct" or blank | `direct` |
+| "Statecode" | `state` |
+| "Map the Choice", "based on … option set" | `choice` |
+| "Need to map the code with D365 lookup", "resolve lookup" | `lookup` |
+| "Check in file which column value is set as Y" | `conditional` |
+| "Map Y / N Field" | `yesNo` |
+| "UTC time zone" | `dateTime` |
+
+4. Writes `/config/entities/<sheetName-lowercased>.json` for each sheet.
+
+## What the tool does **not** do
+
+- **Does not invent** `entitySetName` or `navigationProperty` for lookup transforms. These come from Dataverse metadata and require a human pass against `EntityDefinitions`.
+- **Does not parse** the special trailing rows describing N:N relationships and post-load actions (Site sheet R19+, Contact R24+). These are prose-shaped and brittle to parse — the analyst either edits the JSON directly or completes the workbook to a stricter shape in a future revision.
+- **Does not populate** the freight/shipping/payment-term map values. Those come from separate sub-workbooks the analyst still needs to provide (P0.8 in `implementation.md`).
+
+After running `excel-to-json`, run `validate-config` to see what's still missing — it'll surface the blank fields clearly.
+
+## Round-trip workflow
+
+```bash
+# 1. Analyst edits the workbook
+excel-to-json workbook.xlsx -o config/entities/
+
+# 2. Validate what the converter produced
+python -m validate_config config
+
+# 3. Complete the human-only bits in the JSONs
+#    (entitySetName, navigationProperty, choice maps, relationships, postLoadActions)
+# 4. Validate again
+python -m validate_config config --strict
+```
+
+## Tests
+
+```bash
+python -m pip install -e ".[dev]"
+pytest -v
+```
+
+The suite includes tests against the real workbook in the repo root, verifying that the inference rules produce the expected transform types for actual mapping rows.

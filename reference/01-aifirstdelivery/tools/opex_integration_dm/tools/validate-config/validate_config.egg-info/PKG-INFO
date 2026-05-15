@@ -1,0 +1,101 @@
+Metadata-Version: 2.4
+Name: validate-config
+Version: 0.1.0
+Summary: CI gate validating Opex integration framework JSON configs against their schemas plus cross-file rules.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: jsonschema>=4.20.0
+Requires-Dist: referencing>=0.30.0
+Requires-Dist: click>=8.1.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+
+# validate-config
+
+The CI gate that validates every JSON config under `/config/` against the framework JSON Schemas and the rule catalog from [`detailed-design/01-config-schemas.md`](../../detailed-design/01-config-schemas.md).
+
+## Quick start
+
+```bash
+# from repo root
+cd tools/validate-config
+python -m pip install -e .
+
+# from anywhere
+validate-config /path/to/Opex/config
+```
+
+Or run without installing:
+
+```bash
+python -m validate_config /path/to/Opex/config
+```
+
+## CLI
+
+```
+validate-config [CONFIG_ROOT] [options]
+
+  CONFIG_ROOT             defaults to ./config
+  --schemas DIR           override schema directory (default: CONFIG_ROOT/schemas)
+  --allowlist FILE        path to .validate-config.allowlist.jsonl
+  --strict                promote warnings to errors (CI mode)
+  --output FORMAT         human | github | json   (default: human)
+```
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| 0 | No errors. Warnings may exist (unless `--strict`, which promotes them). |
+| 1 | At least one error after allowlist filtering. |
+| 2 | Configuration problem — missing schemas dir, allowlist parse error. |
+| 3 | Internal exception inside validate-config itself. |
+
+## Output formats
+
+**human** (default) — color-coded, readable on a terminal. One block per finding with the rule code, severity, file, location, message, and JSON Pointer.
+
+**github** — emits `::error file=...,line=...,col=...,title=Vxxx::message` per finding. Drop straight into a GitHub Actions step:
+
+```yaml
+- name: Validate configs
+  run: validate-config config --strict --output github
+```
+
+**json** — structured output for programmatic consumers (a dashboard, a custom Slack notifier, etc.).
+
+## Allowlist
+
+Format: JSONL. One JSON object per line. Suppresses a specific finding when the same code+file+jsonPointer reappear.
+
+```json
+{"rule":"V023","file":"entities/customer.json","jsonPointer":"/fields/8/transform/forward/entitySetName","reason":"opx_country is irregular plural — verified in DV metadata","added":"2026-05-13T00:00:00Z"}
+{"rule":"V051","file":"entities/site.json","jsonPointer":"/fields/12/transform","reason":"placeholder until TZ wiring lands","added":"2026-05-13T00:00:00Z"}
+```
+
+Required keys: `rule`, `reason`. Optional: `file`, `jsonPointer`, `added`.
+
+**Allowlist entries older than 90 days become errors.** This forces the team to either fix the underlying issue or renew the `added` date with a fresh justification. Special code `V998` flags the expired entry.
+
+## Rule catalog
+
+See [`detailed-design/01-config-schemas.md` §6](../../detailed-design/01-config-schemas.md#6-validate-config-rule-catalog) for the full description of every rule code (V001–V052). The implementation in [`validate_config/rules.py`](validate_config/rules.py) is the authoritative behavior; the doc is the authoritative description. Keep both in sync.
+
+## Running the tests
+
+```bash
+python -m pip install -e ".[dev]"
+pytest -v
+```
+
+The test suite includes `test_shipped_configs_have_no_errors` which validates the **real** `/config/` tree shipped with the framework — if you break a config, CI catches it.
+
+## Adding a new rule
+
+1. Add the rule code + (severity, description, doc_url) to `RULE_CATALOG` in `validate_config/errors.py`.
+2. Add a function `def rule_VXXX(state: ConfigState) -> list[Finding]` to `validate_config/rules.py`.
+3. Register the function in the `RULES` list at the bottom of `rules.py`.
+4. Add a `test_VXXX_*` test in `tests/test_validate_config.py` with one pass and one fail fixture.
+5. Update the rule table in [`detailed-design/01-config-schemas.md` §6](../../detailed-design/01-config-schemas.md#6-validate-config-rule-catalog).

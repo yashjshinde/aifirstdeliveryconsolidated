@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "opex-integration/project.schema.json",
+  "title": "Project-level settings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["batchSize", "retry", "notification"],
+  "properties": {
+    "$schemaVersion": { "type": "string", "enum": ["1"] },
+    "schedules": {
+      "type": "object",
+      "description": "Logical schedule definitions; one ADF schedule trigger is materialized per entry.",
+      "additionalProperties": { "$ref": "#/$defs/scheduleEntry" }
+    },
+    "batchSize":                        { "type": "integer", "minimum": 1, "maximum": 10000, "default": 500 },
+    "outboundPageSize":                 { "type": "integer", "minimum": 100, "maximum": 50000, "default": 5000 },
+    "masterCacheTtlMinutes":            { "type": "integer", "minimum": 0, "default": 240 },
+    "masterBroadcastThresholdRows":     { "type": "integer", "minimum": 0, "default": 100000 },
+    "maxConcurrentConnectionsDataverse":{ "type": "integer", "minimum": 1, "maximum": 16, "default": 2 },
+    "dataverseRequestsPerMinuteBudget": { "type": "integer", "minimum": 100, "default": 1100 },
+    "phase2WaitStrategy":               { "enum": ["fixedWait30s", "pollUntilConsistent60s"], "default": "fixedWait30s" },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxAttempts", "backoffSec"],
+      "properties": {
+        "maxAttempts":  { "type": "integer", "minimum": 1, "maximum": 20, "default": 5 },
+        "backoffSec":   { "type": "integer", "minimum": 1, "maximum": 600, "default": 30 },
+        "exponential":  { "type": "boolean", "default": true },
+        "jitter":       { "type": "boolean", "default": true }
+      }
+    },
+    "createMissingLookupsDefault": { "type": "boolean", "enum": [false], "default": false },
+    "partialLoadAllowed":          { "type": "boolean", "default": true },
+    "failureThresholdPct":         { "type": "number", "minimum": 0, "maximum": 100, "default": 5 },
+    "notification": { "$ref": "#/$defs/notification" }
+  },
+  "$defs": {
+    "scheduleEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "direction"],
+      "properties": {
+        "type":      { "enum": ["daily", "everyNHours", "oneTime", "manual"] },
+        "atUtc":     { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$" },
+        "n":         { "type": "integer", "minimum": 1, "maximum": 24 },
+        "startUtc":  { "type": "string", "format": "date-time" },
+        "direction": { "enum": ["inbound", "outbound"] }
+      },
+      "allOf": [
+        { "if": { "type": "object", "required": ["type"], "properties": { "type": { "const": "daily" } } },
+          "then": { "required": ["atUtc"] } },
+        { "if": { "type": "object", "required": ["type"], "properties": { "type": { "const": "everyNHours" } } },
+          "then": { "required": ["n"] } },
+        { "if": { "type": "object", "required": ["type"], "properties": { "type": { "const": "oneTime" } } },
+          "then": { "required": ["startUtc"] } }
+      ]
+    },
+    "notification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled":     { "type": "boolean", "default": false },
+        "onFailure":   { "type": "array", "items": { "enum": ["email", "teams"] } },
+        "onPartial":   { "type": "array", "items": { "enum": ["email", "teams"] } },
+        "onSlaBreach": { "type": "array", "items": { "enum": ["email", "teams"] } },
+        "slaMinutes":  { "type": "integer", "minimum": 1 },
+        "to":          { "type": "array", "items": { "type": "string", "format": "email" } },
+        "teamsWebhookSecretName": { "type": "string", "pattern": "^kv-[a-z0-9-]+$" }
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+# brownfield-multipliers.yaml -- effort multipliers applied per inventory row when project mode is brownfield.
+# Per ADR-0009. Auto-populated per row from agents/brownfield/_brownfield/inventory.json
+# (the brownfield agent classifies each artifact NEW/EXTEND/REPLACE/REFERENCED).
+#
+# Greenfield mode: every row gets N/A -> multiplier 1.0 implicit.
+# Brownfield mode: each row's Brownfield Status column is filled from inventory.json
+# and the multiplier here is applied to all 5 complexity hour columns (VS/S/M/C/VC).
+
+version: 1
+
+multipliers:
+  NEW:
+    value: 1.0
+    description: "Full effort -- this is a new component being built from scratch."
+  EXTEND:
+    value: 0.6
+    description: "Partial effort -- extending an existing component (e.g., adding a field to an existing entity, adding a step to an existing plugin)."
+  REPLACE:
+    value: 1.15
+    description: "Overhead of removal + replacement -- existing component is being deprecated and a new one built. 15% premium over NEW to cover analysis of the old + clean removal."
+  REFERENCED:
+    value: 0.0
+    description: "No implementation effort -- this component is consumed by the new solution but is owned and maintained elsewhere (e.g., a shared library, an external API)."
+  N/A:
+    value: 1.0
+    description: "Greenfield mode -- no brownfield classification applies. Multiplier is implicit 1.0."
+
+# Source: brownfield agent's classification (see agents/brownfield/ when Phase 7 builds it).
+# In greenfield projects, every row defaults to NEW.

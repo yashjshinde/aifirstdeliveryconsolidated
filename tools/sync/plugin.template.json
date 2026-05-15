@@ -1,0 +1,28 @@
+{
+  "_comment": "Canonical Claude plugin manifest template. Rendered by Publish-Agents.ps1 (Job 3) into agents/{AGENT_NAME}/.claude-plugin/plugin.json. Placeholders: {{AGENT_NAME}}, {{AGENT_VERSION}}, {{AGENT_DESCRIPTION}}, {{AGENT_MATURITY}}. See ADR-0004 for the plugin-distribution rationale.",
+
+  "name": "spec-driven-dev-{{AGENT_NAME}}",
+  "version": "{{AGENT_VERSION}}",
+  "description": "{{AGENT_DESCRIPTION}}",
+
+  "author": {
+    "name": "Spec-Driven Development Platform"
+  },
+
+  "homepage": "",
+  "repository": "",
+  "license": "TBD",
+
+  "keywords": [
+    "spec-driven-development",
+    "d365",
+    "power-platform",
+    "{{AGENT_NAME}}",
+    "{{AGENT_MATURITY}}"
+  ],
+
+  "_meta": {
+    "generated-by": "tools/sync/Publish-Agents.ps1",
+    "do-not-edit": "Generated file. Hand-edits fail .github/workflows/check-publish-drift.yml. Author lives at tools/sync/plugin.template.json."
+  }
+}

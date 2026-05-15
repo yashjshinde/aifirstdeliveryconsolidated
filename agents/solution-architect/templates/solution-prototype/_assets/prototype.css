@@ -1,0 +1,172 @@
+/*
+ * prototype.css -- cross-page layout for the solution prototype.
+ * Implements the 6-layer layout from constitution/03-prototype-generation-rules.md.
+ * Depends on d365-tokens.css being loaded first.
+ */
+
+/* ------ Layer 1: Top nav (46px fixed) ------ */
+.topnav {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--topnav-h);
+  background: var(--nav-bg); color: var(--nav-fg);
+  display: flex; align-items: center;
+  padding: 0 var(--space-lg);
+  z-index: 1000;
+  box-shadow: var(--shadow-sm);
+}
+.topnav-brand {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-large);
+}
+.topnav-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-lg); }
+.topnav-avatar {
+  width: 30px; height: 30px; border-radius: var(--radius-pill);
+  background: var(--blue); display: inline-flex; align-items: center; justify-content: center;
+  font-weight: var(--font-weight-semibold);
+}
+.persona-switcher select {
+  background: rgba(255,255,255,0.1); color: var(--nav-fg); border: 1px solid rgba(255,255,255,0.2);
+  padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);
+}
+
+/* ------ Layer 2: Sidebar (200px left, anchored under top nav) ------ */
+.sidebar {
+  position: fixed; top: var(--topnav-h); bottom: 0; left: 0;
+  width: var(--sidebar-w); background: var(--sidebar-bg);
+  overflow-y: auto; border-right: 1px solid var(--border);
+  padding: var(--space-md) 0;
+}
+.sidebar-section-title {
+  font-size: var(--font-size-small); color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin: var(--space-md) var(--space-md) var(--space-xs) var(--space-md);
+}
+.sidebar-list { list-style: none; padding: 0; margin: 0; }
+.sidebar-item a {
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text-primary);
+}
+.sidebar-item a:hover { background: rgba(0,120,212,0.08); text-decoration: none; }
+.sidebar-item-active { background: rgba(0,120,212,0.12); border-left: 3px solid var(--blue); }
+.sidebar-icon {
+  width: 24px; height: 24px; border-radius: var(--radius-sm);
+  background: var(--blue); color: var(--text-on-primary);
+  font-size: var(--font-size-small); font-weight: var(--font-weight-semibold);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* ------ Main content area (everything to the right of the sidebar, below the top nav) ------ */
+.main {
+  margin-left: var(--sidebar-w);
+  margin-top: var(--topnav-h);
+  padding: var(--space-lg) var(--space-xl);
+  min-height: calc(100vh - var(--topnav-h));
+}
+
+/* ------ Layer 3: Command bar ------ */
+.command-bar {
+  height: var(--command-bar-h);
+  background: var(--command-bar-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-xl)) var(--space-lg);
+}
+.cmd-btn {
+  background: transparent; border: none; padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-base); color: var(--text-primary); cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.cmd-btn:hover { background: rgba(0,0,0,0.04); }
+.cmd-btn.primary { background: var(--blue); color: var(--text-on-primary); }
+.cmd-btn.primary:hover { background: var(--blue-hover); }
+.cmd-btn:disabled { color: var(--text-disabled); cursor: default; }
+.cmd-btn:disabled:hover { background: transparent; }
+
+/* ------ Layer 4: Record header ------ */
+.record-header {
+  background: var(--record-header-bg); padding: var(--space-md) 0 var(--space-lg);
+  border-bottom: 1px solid var(--border); margin-bottom: var(--space-lg);
+  min-height: var(--record-header-min-h);
+}
+.record-header h1 { margin: 0; font-size: var(--font-size-h1); font-weight: var(--font-weight-semibold); }
+.record-header p { margin: var(--space-xs) 0 0; color: var(--text-secondary); }
+
+/* ------ Layer 5: Tab bar ------ */
+.tab-bar {
+  display: flex; border-bottom: 1px solid var(--border); margin-bottom: var(--space-lg);
+  height: var(--tab-bar-h);
+}
+.tab-bar .tab {
+  padding: 0 var(--space-lg); display: inline-flex; align-items: center;
+  cursor: pointer; color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+}
+.tab-bar .tab.active { color: var(--text-primary); border-bottom-color: var(--blue); font-weight: var(--font-weight-semibold); }
+
+/* ------ Layer 6: Scrollable body / common content ------ */
+.welcome { max-width: 800px; }
+.welcome h1 { font-size: 26px; margin-top: var(--space-md); }
+.generated-meta { color: var(--text-secondary); font-size: var(--font-size-small); margin-top: var(--space-xl); }
+
+/* Tile grids (used in persona landings, module hubs, dashboards) */
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-md); margin-top: var(--space-md); }
+.tile-grid .tile {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: var(--space-md); box-shadow: var(--shadow-sm);
+}
+.tile-grid .tile h3 { margin: 0 0 var(--space-xs); font-size: var(--font-size-h3); }
+.tile-grid .tile .tile-value { font-size: 28px; font-weight: var(--font-weight-bold); color: var(--blue); }
+.tile-grid .tile .tile-label { color: var(--text-secondary); font-size: var(--font-size-small); }
+
+/* Form field rows (alternating zebra) */
+.form-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: var(--space-lg); }
+.form-section-header {
+  padding: var(--space-sm) var(--space-md); cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  font-weight: var(--font-weight-semibold);
+}
+.form-section-body { padding: 0 var(--space-md) var(--space-md); }
+.form-row { display: grid; grid-template-columns: 200px 1fr; gap: var(--space-md); padding: var(--space-sm); align-items: center; }
+.form-row:nth-child(odd) { background: var(--surface); }
+.form-row:nth-child(even) { background: var(--bg); }
+.form-row label { color: var(--text-secondary); font-size: var(--font-size-small); }
+.form-row input, .form-row select, .form-row textarea {
+  width: 100%; padding: var(--space-xs) var(--space-sm); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-family: var(--font-family-base); font-size: var(--font-size-base);
+}
+
+/* Status pills */
+.status-pill { display: inline-block; padding: 2px var(--space-sm); border-radius: var(--radius-pill); font-size: var(--font-size-small); font-weight: var(--font-weight-semibold); color: var(--text-on-primary); }
+.status-active  { background: var(--status-active); }
+.status-pending { background: var(--status-pending); }
+.status-error   { background: var(--status-error); }
+.status-warning { background: var(--status-warning); }
+
+/* Journey stepper */
+.journey-stepper { display: flex; gap: 0; padding: var(--space-md) 0; margin-bottom: var(--space-lg); }
+.journey-stepper .step {
+  flex: 1; padding: var(--space-sm) var(--space-md);
+  background: var(--surface); border: 1px solid var(--border); border-right: none;
+  text-align: center; color: var(--text-secondary);
+}
+.journey-stepper .step:last-child { border-right: 1px solid var(--border); border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+.journey-stepper .step:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
+.journey-stepper .step.active { background: var(--blue); color: var(--text-on-primary); font-weight: var(--font-weight-semibold); }
+
+/* Scroll-to-top button */
+.scroll-top {
+  position: fixed; bottom: var(--space-xl); right: var(--space-xl);
+  width: 44px; height: 44px; border-radius: var(--radius-pill);
+  background: var(--blue); color: var(--text-on-primary);
+  border: none; cursor: pointer; display: none;
+  font-size: var(--font-size-large); box-shadow: var(--shadow-md);
+}
+.scroll-top.visible { display: block; }
+
+/* Hide nav for print */
+@media print {
+  .topnav, .sidebar, .command-bar, .scroll-top { display: none; }
+  .main { margin: 0; }
+}

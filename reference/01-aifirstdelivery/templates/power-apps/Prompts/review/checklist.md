@@ -1,0 +1,76 @@
+# Spec Review Checklist — Power Apps
+
+## Constitution: 00 — Architectural Principles
+- [ ] No requirement bypasses OOB/low-code without justification — config-first order followed (BLOCKER)
+- [ ] Every Canvas App query on a table expected to exceed 500 rows is identified as requiring delegation (BLOCKER if non-delegable with no mitigation)
+- [ ] Shared flow logic is in child flows — no duplicate logic across parent flows (REQUIRED)
+- [ ] All components will be in named solutions — nothing in Default Solution (BLOCKER)
+- [ ] Dataverse is system of record — no master data replicated to SharePoint/Excel for operational use (REQUIRED)
+
+## Constitution: 01 — Canvas Apps (if in scope)
+- [ ] Screen naming follows `scr{Purpose}` convention (REQUIRED)
+- [ ] No `Xrm.Page` or unsupported APIs referenced (N/A for canvas)
+- [ ] Delegation risk identified for large data operations (REQUIRED)
+- [ ] No `alert()` or browser-native dialogs referenced (BLOCKER)
+- [ ] Accessibility requirements stated (RECOMMENDED)
+
+## Constitution: 02 — Model-Driven Apps (if in scope)
+- [ ] No direct modification of OOB system forms — clone approach stated (BLOCKER)
+- [ ] Form names follow `{TableName} — {Purpose}` pattern (REQUIRED)
+- [ ] Business Rules documented where show/hide/require logic needed (REQUIRED)
+
+## Constitution: 03 — Power Automate (if in scope)
+- [ ] Flow type identified: Automated / Scheduled / Instant (REQUIRED)
+- [ ] Connection references identified — no personal connections (BLOCKER)
+- [ ] Error handling approach described (REQUIRED)
+- [ ] Flow owned by service account noted (REQUIRED)
+- [ ] Flow description provided (RECOMMENDED)
+
+## Constitution: 04 — Dataverse Schema (if in scope)
+- [ ] Table names `{prefix}_tablename` all lowercase (BLOCKER)
+- [ ] Column names `{prefix}_columnname` all lowercase (BLOCKER)
+- [ ] Currency type for monetary fields (BLOCKER)
+- [ ] Yes/No (boolean) for binary flags — not 2-option Choice (REQUIRED)
+- [ ] Delegation-safe columns for canvas filter/sort operations (REQUIRED)
+
+## Constitution: 05 — Copilot Studio (if in scope)
+- [ ] Trigger phrases defined (minimum 5 per topic) (REQUIRED)
+- [ ] Escalation path described (REQUIRED)
+- [ ] Variables named with `gbl_` or `tp_` prefix (REQUIRED)
+- [ ] Power Automate flow name identified for data actions (REQUIRED)
+
+## Constitution: 06 — Security
+- [ ] Azure AD auth on canvas apps (BLOCKER if missing)
+- [ ] Security roles named correctly (REQUIRED)
+- [ ] No individual user sharing — Azure AD Groups only (REQUIRED)
+- [ ] PII fields identified (REQUIRED if personal data in scope)
+- [ ] No secrets or API keys referenced in spec — Azure Key Vault noted for any credential (BLOCKER if secrets in scope)
+- [ ] Connection References identified — no personal connections (BLOCKER)
+- [ ] Dataverse audit enablement called out for PII and financial tables (REQUIRED if PII or financial data in scope)
+
+## Constitution: 11 — NFR Targets
+- [ ] Canvas App screen load NFR stated — must be ≤ 3s or justified exception (REQUIRED)
+- [ ] Every large-table query (> 500 rows) has delegation-safe approach identified (BLOCKER if non-delegable with no mitigation)
+- [ ] User-triggered flow duration NFR stated — must be ≤ 5s or justified exception (REQUIRED)
+- [ ] Availability target stated (99.9% or justified exception) (REQUIRED)
+- [ ] Data volume estimated for all new tables — flag if > 1 million rows (REQUIRED)
+- [ ] PII/financial table retention period stated (REQUIRED if PII or financial data in scope)
+
+## Spec Completeness
+- [ ] All functional requirements numbered FR-NNN sequentially across all modules (REQUIRED)
+- [ ] All personas identified with security roles and app access (REQUIRED)
+- [ ] Business Process Overview (§4) populated with numbered end-to-end steps (REQUIRED)
+- [ ] Every FR has Inputs and Outputs documented (REQUIRED)
+- [ ] Every FR has at least one Business Rule inline, or explicitly states "No business rules" (REQUIRED)
+- [ ] Every FR has Component type identified (Canvas / MDA / Flow / Copilot / Schema) (REQUIRED)
+- [ ] Every FR has Story Decomposition Guidance with at least one Possible Story Split (RECOMMENDED)
+- [ ] Every FR has Dependencies (Upstream / Downstream) — "None" acceptable if standalone (REQUIRED)
+- [ ] Every FR has Non-Functional Considerations — at least Performance and Security (REQUIRED)
+- [ ] Every FR has Traceability reference if source document was provided (RECOMMENDED)
+- [ ] Power Platform Impact Summary (§6) populated — all components across all modules (REQUIRED)
+- [ ] Business Rules table (§7) populated — every BR referenced inline must appear here with enforcement point (REQUIRED if any rules exist)
+- [ ] Data Considerations (§8) completed — delegation risk and data volume assessed (REQUIRED)
+- [ ] Open Questions (§10) completed — "None identified." is acceptable (REQUIRED)
+- [ ] Constitution Risks (§11) completed — "None identified." is acceptable (REQUIRED)
+- [ ] Acceptance Criteria (§12) has at least one Given/When/Then scenario per module (REQUIRED)
+- [ ] Traceability Matrix (§14) populated if source references were provided (RECOMMENDED)

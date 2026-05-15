@@ -1,0 +1,51 @@
+<!--
+Scaffolding starter for agents/{agent}/constitution/03-security.md.
+Security baseline for this platform.
+-->
+---
+agent: {agent-slug}
+version: 1.0.0
+last-reviewed: YYYY-MM-DD
+owner: platform
+---
+
+# Security Baseline — {Agent Name}
+
+## Identity & access
+
+- Authentication mechanism for the platform (e.g., Azure AD, Entra ID)
+- Service principal / managed identity conventions
+- Secret storage (Key Vault, environment variables, etc.)
+
+## Authorisation
+
+- Platform-specific security model (e.g., CE security roles + privilege matrix, F&O duties + privileges, Power BI RLS + OLS)
+- Principle of least privilege
+- Role assignment conventions
+
+## Data protection
+
+- Data at rest (encryption, sensitivity labels)
+- Data in transit (TLS minimum, certificate management)
+- PII / sensitive data handling
+
+## Audit
+
+- Audit configuration per platform
+- Log retention policy
+- Access review cadence
+
+## Per-feature security review
+
+Every feature's spec includes §6 Security with:
+- Privilege matrix per role / entity / capability
+- Audit configuration changes
+- Sensitive data fields
+- Authentication / authorisation deltas vs the baseline above
+
+`doc_lint` rules enforce presence of §6 Security in every spec.
+
+## Multilingual & accessibility
+
+- Language code conventions per `project.config.yaml multilingual`
+- Accessibility (WCAG 2.1 AA minimum for UI artefacts)

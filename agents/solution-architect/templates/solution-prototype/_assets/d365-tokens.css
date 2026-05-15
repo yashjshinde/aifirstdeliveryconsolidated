@@ -1,0 +1,81 @@
+/*
+ * d365-tokens.css -- D365 design tokens.
+ * PORTED VERBATIM from the SW source per ADR-0005.
+ * Mirrored in agents/d365-ce/templates/fdd-helpers/ (form-mockup-generator helper uses the same tokens).
+ * DO NOT hand-edit -- changes should land in both copies.
+ */
+
+:root {
+  /* ------ Layout backgrounds ------ */
+  --nav-bg:           #1b2a4a;   /* dark navy top nav */
+  --nav-fg:           #ffffff;
+  --sidebar-bg:       #faf9f8;   /* near-white sidebar */
+  --command-bar-bg:   #f3f2f1;   /* light grey command bar */
+  --record-header-bg: #ffffff;
+  --bg:               #f3f2f1;   /* page background */
+  --surface:          #ffffff;   /* card / form surface */
+  --border:           #e1dfdd;   /* subtle borders */
+
+  /* ------ Brand colours ------ */
+  --blue:             #0078d4;
+  --blue-hover:       #106ebe;
+  --blue-pressed:     #005a9e;
+  --blue-disabled:    #a6c8e7;
+
+  /* ------ Text ------ */
+  --text-primary:     #1f1f1f;
+  --text-secondary:   #605e5c;
+  --text-disabled:    #a19f9d;
+  --text-on-primary:  #ffffff;
+  --text-link:        var(--blue);
+
+  /* ------ Status pills ------ */
+  --status-active:    #107c10;   /* green */
+  --status-pending:   #797775;   /* grey */
+  --status-error:     #a4262c;   /* red */
+  --status-warning:   #ffaa44;   /* amber */
+  --status-info:      #0078d4;
+
+  /* ------ Typography ------ */
+  --font-family-base: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-size-base:   14px;
+  --font-size-small:  12px;
+  --font-size-large:  16px;
+  --font-size-h1:     20px;
+  --font-size-h2:     17px;
+  --font-size-h3:     15px;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-base: 1.4;
+
+  /* ------ Spacing ------ */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-xxl: 32px;
+
+  /* ------ Layout dimensions ------ */
+  --topnav-h:       46px;
+  --sidebar-w:      200px;
+  --command-bar-h:  44px;
+  --record-header-min-h: 80px;
+  --tab-bar-h:      40px;
+
+  /* ------ Radii ------ */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-pill: 9999px;
+
+  /* ------ Shadows ------ */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+/* Base reset */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: var(--font-family-base); font-size: var(--font-size-base); line-height: var(--line-height-base); color: var(--text-primary); background: var(--bg); }
+a { color: var(--text-link); text-decoration: none; }
+a:hover { text-decoration: underline; }

@@ -1,0 +1,29 @@
+{
+  "name": "ls_dataverse",
+  "type": "Microsoft.DataFactory/factories/linkedServices",
+  "properties": {
+    "type": "CommonDataServiceForApps",
+    "description": "Dataverse / D365 environment. SPN authentication; client secret in Key Vault.",
+    "annotations": ["opex-integration", "v1"],
+    "typeProperties": {
+      "deploymentType": "Online",
+      "serviceUri": "@{linkedService().serviceUri}",
+      "authenticationType": "AADServicePrincipal",
+      "servicePrincipalId": "@{linkedService().servicePrincipalId}",
+      "servicePrincipalCredentialType": "ServicePrincipalKey",
+      "servicePrincipalCredential": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "@{linkedService().spnSecretName}"
+      }
+    },
+    "parameters": {
+      "serviceUri":          { "type": "String", "defaultValue": "https://opex-dev.crm.dynamics.com" },
+      "servicePrincipalId":  { "type": "String", "defaultValue": "00000000-0000-0000-0000-000000000000" },
+      "spnSecretName":       { "type": "String", "defaultValue": "kv-dataverse-spn-secret" }
+    }
+  }
+}

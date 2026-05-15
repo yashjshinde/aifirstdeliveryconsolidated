@@ -1,0 +1,20 @@
+{
+  "name": "ds_dataverse",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "type": "CommonDataServiceForAppsEntity",
+    "description": "Dataverse entity dataset. entityName parameterized for use across all pipelines (load, prefetch, outbound extract).",
+    "annotations": ["opex-integration", "v1"],
+    "linkedServiceName": {
+      "referenceName": "ls_dataverse",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "entityName": { "type": "String" }
+    },
+    "typeProperties": {
+      "entityName": "@dataset().entityName"
+    },
+    "schema": []
+  }
+}

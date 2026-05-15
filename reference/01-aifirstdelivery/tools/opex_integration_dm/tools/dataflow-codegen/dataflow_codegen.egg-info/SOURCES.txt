@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+dataflow_codegen/__init__.py
+dataflow_codegen/__main__.py
+dataflow_codegen/cli.py
+dataflow_codegen/dsl.py
+dataflow_codegen/generator.py
+dataflow_codegen/templates.py
+dataflow_codegen.egg-info/PKG-INFO
+dataflow_codegen.egg-info/SOURCES.txt
+dataflow_codegen.egg-info/dependency_links.txt
+dataflow_codegen.egg-info/entry_points.txt
+dataflow_codegen.egg-info/requires.txt
+dataflow_codegen.egg-info/top_level.txt
+tests/test_generator.py

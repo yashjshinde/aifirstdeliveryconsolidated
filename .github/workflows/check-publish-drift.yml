@@ -1,0 +1,74 @@
+# check-publish-drift.yml
+# Drift-check CI gate per ADR-0011 Job 8.
+#
+# Runs the publish pipeline in -CheckDrift mode on every PR. Fails the build if any
+# generated or mirrored file has been hand-edited, has different content vs. what the
+# pipeline would produce, or is missing relative to .publish-manifest.json.
+#
+# The drift check is the enforcement mechanism for "DO NOT EDIT generated files".
+# Hand-edits land here as concrete failures with the offending file paths.
+
+name: check-publish-drift
+
+on:
+  pull_request:
+    paths:
+      # Touch anything that could change generated output
+      - 'agents.yaml'
+      - 'workflow.yaml'
+      - 'schemas/**'
+      - 'agents/**'
+      - 'tools/sync/**'
+      - 'tools/mcp-server/**'
+      - '.claude/**'
+      - '.claude-plugin/**'
+      - '.github/chatmodes/**'
+      - '.github/prompts/**'
+      - '.publish-manifest.json'
+      - '.github/workflows/check-publish-drift.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  drift:
+    name: Drift check
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install MCP server deps (needed by Validate-Config.cjs shim)
+        shell: pwsh
+        working-directory: tools/mcp-server
+        run: |
+          npm install --no-audit --no-fund
+
+      - name: Build MCP server (TypeScript -> dist/)
+        shell: pwsh
+        working-directory: tools/mcp-server
+        run: |
+          npx tsc
+
+      - name: Run publish pipeline in check-drift mode
+        shell: pwsh
+        run: |
+          ./tools/sync/Publish-Agents.ps1 -CheckDrift
+
+      - name: On failure - show diff vs main
+        if: failure()
+        shell: pwsh
+        run: |
+          Write-Host "Drift detected. The following files differ from what the publish pipeline would produce:"
+          Write-Host ""
+          git diff --name-only
+          Write-Host ""
+          Write-Host "To fix locally: run .\tools\sync\Publish-Agents.ps1 (no flags), commit the regenerated files."
+          Write-Host "DO NOT edit generated files directly - edit the SOURCE in agents/{a}/.claude/commands/ or tools/sync/*.template.*."

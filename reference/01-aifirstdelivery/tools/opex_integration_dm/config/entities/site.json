@@ -1,0 +1,196 @@
+{
+  "$schemaVersion": "1",
+  "entityKey": "site",
+  "direction": "inbound",
+
+  "source": {
+    "system": "SFTP",
+    "format": "csv",
+    "sftpLinkedService": "ls_sftp_fusion",
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "headerRow": 1,
+    "inbound": {
+      "pathPattern": "/exports/HZ_PARTY_SITES_*.csv",
+      "worksheet": null,
+      "archiveTo": "/archive/site/{yyyy}/{MM}/{dd}/",
+      "onMultipleFiles": "concat"
+    }
+  },
+
+  "target": {
+    "system": "Dataverse",
+    "entityLogicalName": "msdyn_functionallocation",
+    "alternateKey": ["opx_accountNumber", "msdyn_name"],
+    "inbound": {
+      "writeMode": "upsert",
+      "bypassPlugins": true
+    }
+  },
+
+  "dedup": {
+    "enabled": true,
+    "checksumColumns": ["ACCOUNT_NUMBER", "PARTY_SITE_NUMBER"],
+    "onDuplicate": "keepLatest"
+  },
+
+  "dateTime": {
+    "defaultTimeZone": "UTC",
+    "format": "yyyy-MM-dd HH:mm:ss"
+  },
+
+  "lookups": {
+    "createMissingDefault": false
+  },
+
+  "fields": [
+    {
+      "source": "PARTY_SITE_NUMBER",
+      "sourceType": "text",
+      "target": "msdyn_name",
+      "targetType": "text",
+      "maxLength": 100,
+      "mandatory": true,
+      "validations": ["notEmpty"],
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "ADDRESS1",
+      "sourceType": "text",
+      "target": "msdyn_address1",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "ADDRESS2",
+      "sourceType": "text",
+      "target": "msdyn_address2",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "ADDRESS3",
+      "sourceType": "text",
+      "target": "msdyn_address3",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "CITY",
+      "sourceType": "text",
+      "target": "msdyn_city",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "POSTAL_CODE",
+      "sourceType": "text",
+      "target": "msdyn_postalcode",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "STATE",
+      "sourceType": "text",
+      "target": "msdyn_stateorprovince",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "COUNTRY",
+      "sourceType": "text",
+      "target": "msdyn_country",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "COUNTY",
+      "sourceType": "text",
+      "target": "opx_county",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "PROVINCE",
+      "sourceType": "text",
+      "target": "opx_province",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "ACCT_SITE_STATUS",
+      "sourceType": "text",
+      "target": "statecode",
+      "targetType": "state",
+      "defaultValue": 0,
+      "transform": {
+        "type": "state",
+        "forward": {
+          "map": { "A": 0, "I": 1 },
+          "default": 0
+        }
+      }
+    },
+    {
+      "source": "SITE_START_DATE",
+      "sourceType": "date",
+      "target": "msdyn_LocationOpenDate",
+      "targetType": "dateonly",
+      "transform": {
+        "type": "dateTime",
+        "forward": {
+          "sourceTz": "UTC",
+          "targetTz": "UTC",
+          "inputFormat": "yyyy-MM-dd",
+          "outputFormat": "yyyy-MM-dd"
+        }
+      }
+    },
+    {
+      "source": "END_DATE",
+      "sourceType": "date",
+      "target": "opx_endDate",
+      "targetType": "dateonly",
+      "transform": {
+        "type": "dateTime",
+        "forward": {
+          "sourceTz": "UTC",
+          "targetTz": "UTC",
+          "inputFormat": "yyyy-MM-dd",
+          "outputFormat": "yyyy-MM-dd"
+        }
+      }
+    },
+    {
+      "source": "ACCOUNT_NUMBER",
+      "sourceType": "text",
+      "target": "opx_accountNumber",
+      "targetType": "text",
+      "maxLength": 100,
+      "mandatory": true,
+      "validations": ["notEmpty"],
+      "transform": { "type": "direct" }
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "NN",
+      "relationshipSchemaName": "msdyn_msdyn_functionallocation_account",
+      "primaryEntity": "account",
+      "primaryKey": { "field": "accountnumber", "source": "ACCOUNT_NUMBER" },
+      "relatedEntity": "msdyn_functionallocation",
+      "relatedKey":   { "field": "msdyn_name",   "source": "PARTY_SITE_NUMBER" },
+      "inbound": { "writeMode": "associate" }
+    }
+  ],
+
+  "postLoadActions": [
+    {
+      "type": "setLookup",
+      "targetEntity": "account",
+      "targetLookupField": "address1_line1",
+      "valueFromSelf": "ADDRESS1"
+    }
+  ]
+}

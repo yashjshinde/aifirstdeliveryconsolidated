@@ -1,0 +1,146 @@
+{
+  "name": "pl_load_upsert",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Copy /final/<entityKey>/<runId>/data.parquet to Dataverse (Upsert by alternate key). Plugin bypass and dup-detection suppression are sent as HTTP headers per Dataverse connector contract.",
+    "annotations": ["opex-integration", "v1", "inbound"],
+    "parameters": {
+      "entityKey":          { "type": "String" },
+      "runId":              { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":         { "type": "String" },
+      "targetEntity":       { "type": "String", "defaultValue": "account" },
+      "alternateKey":       { "type": "Array",  "defaultValue": ["accountnumber"] },
+      "batchSize":          { "type": "Int",    "defaultValue": 500 },
+      "bypassPlugins":      { "type": "Bool",   "defaultValue": true },
+      "maxConcurrent":      { "type": "Int",    "defaultValue": 2 },
+      "writeMode":          { "type": "String", "defaultValue": "Upsert" }
+    },
+    "variables": {
+      "rowsRead":    { "type": "Integer", "defaultValue": 0 },
+      "rowsWritten": { "type": "Integer", "defaultValue": 0 },
+      "rowsSkipped": { "type": "Integer", "defaultValue": 0 },
+      "status":      { "type": "String",  "defaultValue": "Success" }
+    },
+    "activities": [
+      {
+        "name": "Copy_FinalToDataverse",
+        "type": "Copy",
+        "policy": { "timeout": "0.04:00:00", "retry": 5, "retryIntervalInSeconds": 60 },
+        "typeProperties": {
+          "source": {
+            "type": "ParquetSource",
+            "storeSettings": { "type": "AzureBlobFSReadSettings", "recursive": false },
+            "formatSettings": { "type": "ParquetReadSettings" }
+          },
+          "sink": {
+            "type": "CommonDataServiceForAppsSink",
+            "writeBehavior": "@pipeline().parameters.writeMode",
+            "alternateKeyName": "@join(pipeline().parameters.alternateKey, ',')",
+            "writeBatchSize":   "@pipeline().parameters.batchSize",
+            "maxConcurrentConnections": "@pipeline().parameters.maxConcurrent",
+            "ignoreNullValues": true,
+            "additionalHeaders": {
+              "MSCRM.BypassCustomPluginExecution":  "@string(pipeline().parameters.bypassPlugins)",
+              "MSCRM.SuppressDuplicateDetection":   "true"
+            }
+          },
+          "enableSkipIncompatibleRow": true,
+          "logSettings": {
+            "enableCopyActivityLog": true,
+            "copyActivityLogSettings": { "logLevel": "Warning", "enableReliableLogging": true },
+            "logLocationSettings": {
+              "linkedServiceName": { "referenceName": "ls_adls", "type": "LinkedServiceReference" },
+              "path": "@concat('opex-integration/errors/', pipeline().parameters.entityKey, '/', pipeline().parameters.runId, '/load_errors')"
+            }
+          },
+          "enableStaging": false,
+          "translator": { "type": "TabularTranslator", "typeConversion": true }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_parquet",
+          "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('final/', pipeline().parameters.entityKey, '/', pipeline().parameters.runId)",
+            "fileName": "data.parquet"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_dataverse",
+          "type": "DatasetReference",
+          "parameters": { "entityName": "@pipeline().parameters.targetEntity" }
+        }]
+      },
+      {
+        "name": "SetVar_LoadCounters",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Copy_FinalToDataverse", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "rowsWritten",
+          "value": "@string(activity('Copy_FinalToDataverse').output.rowsCopied)"
+        }
+      },
+      {
+        "name": "SetVar_RowsRead",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Copy_FinalToDataverse", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "rowsRead",
+          "value": "@string(activity('Copy_FinalToDataverse').output.rowsRead)"
+        }
+      },
+      {
+        "name": "SetVar_RowsSkipped",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Copy_FinalToDataverse", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "rowsSkipped",
+          "value": "@string(activity('Copy_FinalToDataverse').output.rowsSkipped)"
+        }
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [
+          { "activity": "SetVar_LoadCounters", "dependencyConditions": ["Succeeded"] },
+          { "activity": "SetVar_RowsRead",     "dependencyConditions": ["Succeeded"] },
+          { "activity": "SetVar_RowsSkipped",  "dependencyConditions": ["Succeeded"] }
+        ],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName", "value": "pl_load_upsert" },
+              { "name": "entityKey",    "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",        "value": "@pipeline().parameters.runId" },
+              { "name": "status",       "value": "@variables('status')" },
+              { "name": "completedAt",  "value": "@utcNow()" },
+              { "name": "rowsRead",     "value": "@variables('rowsRead')" },
+              { "name": "rowsWritten",  "value": "@variables('rowsWritten')" },
+              { "name": "rowsSkipped",  "value": "@variables('rowsSkipped')" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_load_upsert.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_load_upsert.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/inbound" }
+  }
+}

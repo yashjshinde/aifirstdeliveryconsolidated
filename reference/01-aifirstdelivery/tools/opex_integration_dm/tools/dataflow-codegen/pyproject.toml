@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dataflow-codegen"
+version = "0.1.0"
+description = "Generates ADF Mapping Data Flow ARM JSON from entity-mapping configs."
+requires-python = ">=3.10"
+readme = "README.md"
+dependencies = [
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4.0"]
+
+[project.scripts]
+dataflow-codegen = "dataflow_codegen.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dataflow_codegen*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

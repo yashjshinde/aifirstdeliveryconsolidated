@@ -1,0 +1,191 @@
+{
+  "name": "pl_deliver_sftp",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Outbound — converts parquet under /staged-out to CSV or Excel, delivers via SFTP using .tmp + rename for atomic write.",
+    "annotations": ["opex-integration", "v1", "outbound"],
+    "parameters": {
+      "entityKey":            { "type": "String" },
+      "runId":                { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":           { "type": "String" },
+      "format":               { "type": "String", "defaultValue": "csv" },
+      "sftpFolderPath":       { "type": "String" },
+      "sftpFileName":         { "type": "String" },
+      "delimiter":            { "type": "String", "defaultValue": "," },
+      "encoding":             { "type": "String", "defaultValue": "UTF-8" },
+      "worksheet":            { "type": "String", "defaultValue": "Sheet1" },
+      "writeHeaderRow":       { "type": "Bool",   "defaultValue": true },
+      "emptyFileBehavior":    { "type": "String", "defaultValue": "writeHeaderOnly" },
+      "relationships":        { "type": "Array",  "defaultValue": [] },
+      "atomicRenameFunctionUrl": { "type": "String", "defaultValue": "" }
+    },
+    "variables": {
+      "tmpFileName":   { "type": "String" },
+      "finalFileName": { "type": "String" }
+    },
+    "activities": [
+      {
+        "name": "SetVar_TmpName",
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "tmpFileName",
+          "value": "@concat(pipeline().parameters.sftpFileName, '.tmp')"
+        }
+      },
+      {
+        "name": "SetVar_FinalName",
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "finalFileName",
+          "value": "@pipeline().parameters.sftpFileName"
+        }
+      },
+      {
+        "name": "Copy_PrimaryToSftpTmp",
+        "type": "Copy",
+        "dependsOn": [
+          { "activity": "SetVar_TmpName",   "dependencyConditions": ["Succeeded"] },
+          { "activity": "SetVar_FinalName", "dependencyConditions": ["Succeeded"] }
+        ],
+        "policy": { "timeout": "0.01:00:00", "retry": 3, "retryIntervalInSeconds": 60 },
+        "typeProperties": {
+          "source": {
+            "type": "ParquetSource",
+            "storeSettings": { "type": "AzureBlobFSReadSettings", "recursive": false }
+          },
+          "sink": {
+            "type": "DelimitedTextSink",
+            "storeSettings": { "type": "SftpWriteSettings" },
+            "formatSettings": {
+              "type": "DelimitedTextWriteSettings",
+              "quoteAllText": true,
+              "fileExtension": ""
+            }
+          },
+          "translator": { "type": "TabularTranslator", "typeConversion": true }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_parquet",
+          "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('staged-out/', pipeline().parameters.entityKey, '/', pipeline().parameters.runId)",
+            "fileName": "data.parquet"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_sftp_csv",
+          "type": "DatasetReference",
+          "parameters": {
+            "folderPath":       "@pipeline().parameters.sftpFolderPath",
+            "fileName":         "@variables('tmpFileName')",
+            "delimiter":        "@pipeline().parameters.delimiter",
+            "encoding":         "@pipeline().parameters.encoding",
+            "firstRowAsHeader": "@pipeline().parameters.writeHeaderRow"
+          }
+        }]
+      },
+      {
+        "name": "WebActivity_RenameSftpTmpToFinal",
+        "type": "WebActivity",
+        "dependsOn": [{ "activity": "Copy_PrimaryToSftpTmp", "dependencyConditions": ["Succeeded"] }],
+        "description": "Calls func-sftp-rename Azure Function. Skipped if atomicRenameFunctionUrl is empty (downstream consumers must tolerate .tmp suffix in that case).",
+        "policy": { "timeout": "0.00:05:00", "retry": 3, "retryIntervalInSeconds": 15 },
+        "typeProperties": {
+          "url": "@if(empty(pipeline().parameters.atomicRenameFunctionUrl), 'https://placeholder.invalid/skip', pipeline().parameters.atomicRenameFunctionUrl)",
+          "method": "POST",
+          "headers": { "Content-Type": "application/json" },
+          "body": "@concat('{\"folder\":\"', pipeline().parameters.sftpFolderPath, '\",\"from\":\"', variables('tmpFileName'), '\",\"to\":\"', variables('finalFileName'), '\"}')",
+          "authentication": {
+            "type": "MSI",
+            "resource": "@pipeline().parameters.atomicRenameFunctionUrl"
+          }
+        }
+      },
+      {
+        "name": "ForEach_RelationshipFile",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "WebActivity_RenameSftpTmpToFinal", "dependencyConditions": ["Succeeded", "Skipped", "Failed"] }],
+        "typeProperties": {
+          "items": { "value": "@pipeline().parameters.relationships", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 2,
+          "activities": [
+            {
+              "name": "Copy_RelationshipToSftp",
+              "type": "Copy",
+              "policy": { "timeout": "0.00:30:00", "retry": 3, "retryIntervalInSeconds": 30 },
+              "typeProperties": {
+                "source": {
+                  "type": "ParquetSource",
+                  "storeSettings": { "type": "AzureBlobFSReadSettings" }
+                },
+                "sink": {
+                  "type": "DelimitedTextSink",
+                  "storeSettings": { "type": "SftpWriteSettings" },
+                  "formatSettings": { "type": "DelimitedTextWriteSettings", "quoteAllText": true }
+                }
+              },
+              "inputs": [{
+                "referenceName": "ds_adls_parquet",
+                "type": "DatasetReference",
+                "parameters": {
+                  "folder":   "@concat('staged-out/', pipeline().parameters.entityKey, '/', pipeline().parameters.runId, '/relationships')",
+                  "fileName": "@concat(item().relationshipSchemaName, '.parquet')"
+                }
+              }],
+              "outputs": [{
+                "referenceName": "ds_sftp_csv",
+                "type": "DatasetReference",
+                "parameters": {
+                  "folderPath":       "@pipeline().parameters.sftpFolderPath",
+                  "fileName":         "@concat(pipeline().parameters.entityKey, '_', item().relationshipSchemaName, '_associations.csv')",
+                  "delimiter":        "@pipeline().parameters.delimiter",
+                  "encoding":         "@pipeline().parameters.encoding",
+                  "firstRowAsHeader": "@pipeline().parameters.writeHeaderRow"
+                }
+              }]
+            }
+          ]
+        }
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "ForEach_RelationshipFile", "dependencyConditions": ["Succeeded", "Completed"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName",   "value": "pl_deliver_sftp" },
+              { "name": "entityKey",      "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",          "value": "@pipeline().parameters.runId" },
+              { "name": "status",         "value": "Success" },
+              { "name": "completedAt",    "value": "@utcNow()" },
+              { "name": "deliveredAs",    "value": "@variables('finalFileName')" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_deliver_sftp.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_deliver_sftp.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/outbound" }
+  }
+}

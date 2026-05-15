@@ -1,0 +1,74 @@
+<!--
+persona-landing.template.html - per-persona landing page.
+Rendered into projects/{p}/_aggregator/architecture/solution-prototype/personas/{slug}.html.
+Placeholders:
+  {{PERSONA_NAME}}, {{PERSONA_ROLE}}, {{PERSONA_SLUG}}, {{PROJECT_NAME}}
+  {{TODAYS_VIEW_TILES}}   - HTML for 3-4 key tiles (e.g., "5 cases assigned", "2 quotes pending review")
+  {{RECENT_ACTIVITY}}     - HTML <ul> of recent activity rows
+  {{KEY_LINKS}}           - HTML <ul> of links to the most relevant module hubs / forms
+  {{MODULES_NAV}}, {{PERSONAS_NAV}}, {{JOURNEYS_NAV}}, {{DASHBOARDS_NAV}}
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{PERSONA_NAME}} - {{PROJECT_NAME}}</title>
+  <link rel="stylesheet" href="../assets/d365-tokens.css" />
+  <link rel="stylesheet" href="../assets/prototype.css" />
+</head>
+<body>
+  <header class="topnav">
+    <div class="topnav-brand">D365 - {{PROJECT_NAME}}</div>
+    <div class="topnav-right">
+      <label class="persona-switcher">
+        Persona:
+        <select id="personaSwitcher" data-current="{{PERSONA_SLUG}}"></select>
+      </label>
+      <span class="topnav-avatar" title="{{PERSONA_NAME}}">{{PERSONA_INITIALS}}</span>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <nav>
+      <h2 class="sidebar-section-title">Modules</h2>
+      <ul class="sidebar-list">{{MODULES_NAV}}</ul>
+      <h2 class="sidebar-section-title">Personas</h2>
+      <ul class="sidebar-list">{{PERSONAS_NAV}}</ul>
+      <h2 class="sidebar-section-title">Journeys</h2>
+      <ul class="sidebar-list">{{JOURNEYS_NAV}}</ul>
+      <h2 class="sidebar-section-title">Dashboards</h2>
+      <ul class="sidebar-list">{{DASHBOARDS_NAV}}</ul>
+    </nav>
+  </aside>
+
+  <main class="main persona-landing">
+    <div class="record-header">
+      <h1>{{PERSONA_NAME}}</h1>
+      <p class="persona-role">{{PERSONA_ROLE}}</p>
+    </div>
+
+    <section class="persona-section">
+      <h2>Today's view</h2>
+      <div class="tile-grid">
+        {{TODAYS_VIEW_TILES}}
+      </div>
+    </section>
+
+    <section class="persona-section">
+      <h2>Recent activity</h2>
+      <ul class="activity-list">
+        {{RECENT_ACTIVITY}}
+      </ul>
+    </section>
+
+    <section class="persona-section">
+      <h2>Quick links for {{PERSONA_NAME}}</h2>
+      <ul class="key-links">
+        {{KEY_LINKS}}
+      </ul>
+    </section>
+  </main>
+
+  <script src="../assets/prototype.js"></script>
+</body>
+</html>

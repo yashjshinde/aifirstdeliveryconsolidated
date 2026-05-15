@@ -1,0 +1,280 @@
+{
+  "$schemaVersion": "1",
+  "entityKey": "contact",
+  "direction": "inbound",
+
+  "source": {
+    "system": "SFTP",
+    "format": "csv",
+    "sftpLinkedService": "ls_sftp_fusion",
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "headerRow": 1,
+    "inbound": {
+      "pathPattern": "/exports/HZ_PARTIES_CONTACT_*.csv",
+      "worksheet": null,
+      "archiveTo": "/archive/contact/{yyyy}/{MM}/{dd}/",
+      "onMultipleFiles": "concat"
+    }
+  },
+
+  "target": {
+    "system": "Dataverse",
+    "entityLogicalName": "contact",
+    "alternateKey": ["opx_contactnumber"],
+    "inbound": {
+      "writeMode": "upsert",
+      "bypassPlugins": true
+    }
+  },
+
+  "dedup": {
+    "enabled": true,
+    "checksumColumns": ["CONTACT_NUMBER"],
+    "onDuplicate": "keepLatest"
+  },
+
+  "dateTime": {
+    "defaultTimeZone": "UTC",
+    "format": "yyyy-MM-dd HH:mm:ss"
+  },
+
+  "lookups": {
+    "createMissingDefault": false
+  },
+
+  "fields": [
+    {
+      "source": "CONTACT_NUMBER",
+      "sourceType": "text",
+      "target": "opx_contactnumber",
+      "targetType": "text",
+      "maxLength": 100,
+      "mandatory": true,
+      "validations": ["notEmpty"],
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "PERSON_FIRST_NAME",
+      "sourceType": "text",
+      "target": "firstname",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "PERSON_MIDDLE_NAME",
+      "sourceType": "text",
+      "target": "middlename",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "PERSON_LAST_NAME",
+      "sourceType": "text",
+      "target": "lastname",
+      "targetType": "text",
+      "mandatory": true,
+      "validations": ["notEmpty"],
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "JOB_TITLE",
+      "sourceType": "text",
+      "target": "jobtitle",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "DEPARTMENT",
+      "sourceType": "text",
+      "target": "department",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "MOBILE_PHONE",
+      "sourceType": "text",
+      "target": "mobilephone",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "WORK_PHONE",
+      "sourceType": "text",
+      "target": "telephone1",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "LAND_PHONE",
+      "sourceType": "text",
+      "target": "telephone2",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "PRIMARY_MOBILE_PHONE",
+      "sourceType": "text",
+      "target": "opx_primaryphonetype",
+      "targetType": "choice",
+      "transform": {
+        "type": "conditional",
+        "forward": {
+          "rules": [
+            { "when": "PRIMARY_MOBILE_PHONE=Y", "value": 884870000 },
+            { "when": "PRIMARY_WORK_PHONE=Y",   "value": 884870001 },
+            { "when": "PRIMARY_LAND_PHONE=Y",   "value": 884870002 }
+          ],
+          "default": null
+        },
+        "reverse": {
+          "writes": [
+            { "column": "PRIMARY_MOBILE_PHONE", "value": "Y", "when": "opx_primaryphonetype=884870000", "elseValue": "N" },
+            { "column": "PRIMARY_WORK_PHONE",   "value": "Y", "when": "opx_primaryphonetype=884870001", "elseValue": "N" },
+            { "column": "PRIMARY_LAND_PHONE",   "value": "Y", "when": "opx_primaryphonetype=884870002", "elseValue": "N" }
+          ]
+        }
+      }
+    },
+    {
+      "source": "BUSSINESS_EMAIL",
+      "sourceType": "text",
+      "target": "emailaddress1",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "ASSISTANT_EMAIL",
+      "sourceType": "text",
+      "target": "emailaddress2",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "PERSONAL_EMAIL",
+      "sourceType": "text",
+      "target": "emailaddress3",
+      "targetType": "text",
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "PRIMARY_BUSSINESS_EMAIL",
+      "sourceType": "text",
+      "target": "opx_primaryemailtype",
+      "targetType": "choice",
+      "transform": {
+        "type": "conditional",
+        "forward": {
+          "rules": [
+            { "when": "PRIMARY_BUSSINESS_EMAIL=Y", "value": 884870000 },
+            { "when": "PRIMARY_ASSISTANT_EMAIL=Y", "value": 884870001 },
+            { "when": "PRIMARY_PERSONAL_EMAIL=Y",  "value": 884870002 }
+          ],
+          "default": null
+        },
+        "reverse": {
+          "writes": [
+            { "column": "PRIMARY_BUSSINESS_EMAIL", "value": "Y", "when": "opx_primaryemailtype=884870000", "elseValue": "N" },
+            { "column": "PRIMARY_ASSISTANT_EMAIL", "value": "Y", "when": "opx_primaryemailtype=884870001", "elseValue": "N" },
+            { "column": "PRIMARY_PERSONAL_EMAIL",  "value": "Y", "when": "opx_primaryemailtype=884870002", "elseValue": "N" }
+          ]
+        }
+      }
+    },
+    {
+      "source": "START_DATE",
+      "sourceType": "date",
+      "target": "opx_startdate",
+      "targetType": "dateonly",
+      "transform": {
+        "type": "dateTime",
+        "forward": {
+          "sourceTz": "UTC",
+          "targetTz": "UTC",
+          "inputFormat": "yyyy-MM-dd",
+          "outputFormat": "yyyy-MM-dd"
+        }
+      }
+    },
+    {
+      "source": "END_DATE",
+      "sourceType": "date",
+      "target": "opx_enddate",
+      "targetType": "dateonly",
+      "transform": {
+        "type": "dateTime",
+        "forward": {
+          "sourceTz": "UTC",
+          "targetTz": "UTC",
+          "inputFormat": "yyyy-MM-dd",
+          "outputFormat": "yyyy-MM-dd"
+        }
+      }
+    },
+    {
+      "source": "PREFERRED_CONTACT_METHOD",
+      "sourceType": "text",
+      "target": "preferredcontactmethodcode",
+      "targetType": "choice",
+      "transform": {
+        "type": "choice",
+        "forward": {
+          "map": {
+            "Any": 1,
+            "Email": 2,
+            "Phone": 3,
+            "Fax": 4,
+            "Mail": 5
+          },
+          "default": 1,
+          "onMissing": "useDefault",
+          "normalize": ["trim", "toLowerCase"],
+          "aliases": {
+            "any": "Any",
+            "email": "Email",
+            "phone": "Phone",
+            "fax": "Fax",
+            "mail": "Mail"
+          }
+        }
+      }
+    },
+    {
+      "source": "STATUS",
+      "sourceType": "text",
+      "target": "statecode",
+      "targetType": "state",
+      "mandatory": true,
+      "defaultValue": 0,
+      "transform": {
+        "type": "state",
+        "forward": {
+          "map": { "A": 0, "I": 1 },
+          "default": 0
+        }
+      }
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "NN",
+      "relationshipSchemaName": "opx_Account_Contact_Contact",
+      "primaryEntity": "contact",
+      "primaryKey": { "field": "opx_contactnumber", "source": "CONTACT_NUMBER" },
+      "relatedEntity": "account",
+      "relatedKey":   { "field": "accountnumber",   "source": "ACCOUNT_NUMBER" },
+      "inbound": { "writeMode": "associate" }
+    }
+  ],
+
+  "postLoadActions": [
+    {
+      "type": "setLookup",
+      "condition": "PRIMARY_CONTACT_FLAG=Y",
+      "targetEntity": "account",
+      "targetLookupField": "primarycontactid",
+      "valueFromSelf": "contactid"
+    }
+  ]
+}

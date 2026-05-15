@@ -1,0 +1,21 @@
+{
+  "name": "@ai-first-delivery/runner",
+  "version": "1.0.0",
+  "description": "Model-agnostic CLI runner for AI First Delivery agent commands",
+  "main": "run-agent.js",
+  "bin": {
+    "run-agent": "./run-agent.js"
+  },
+  "scripts": {
+    "install-global": "npm install -g ."
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "commander": "^12.0.0",
+    "openai": "^4.56.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}

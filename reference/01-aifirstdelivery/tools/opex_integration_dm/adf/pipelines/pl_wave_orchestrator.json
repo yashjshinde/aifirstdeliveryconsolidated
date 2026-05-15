@@ -1,0 +1,294 @@
+{
+  "name": "pl_wave_orchestrator",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Multi-entity wave orchestrator. Reads /config/waves/<waveKey>.json, runs entities phase by phase, refreshes master caches between phases, aggregates a wave summary.",
+    "annotations": ["opex-integration", "v1"],
+    "concurrency": 1,
+    "parameters": {
+      "waveKey":         { "type": "String" },
+      "runMode":         { "type": "String", "defaultValue": "incremental" },
+      "forceFull":       { "type": "Bool",   "defaultValue": false },
+      "entityFilter":    { "type": "Array",  "defaultValue": [] },
+      "priorWaveRunId":  { "type": "String", "defaultValue": "" }
+    },
+    "variables": {
+      "waveRunId":           { "type": "String" },
+      "failedEntities":      { "type": "Array",  "defaultValue": [] },
+      "skippedEntities":     { "type": "Array",  "defaultValue": [] },
+      "successEntities":     { "type": "Array",  "defaultValue": [] },
+      "onDepFailure":        { "type": "String", "defaultValue": "skipDependent" },
+      "onEntityFailure":     { "type": "String", "defaultValue": "continueIndependent" }
+    },
+    "activities": [
+      {
+        "name": "SetVar_WaveRunId",
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "waveRunId",
+          "value": "@if(empty(pipeline().parameters.priorWaveRunId), pipeline().RunId, pipeline().parameters.priorWaveRunId)"
+        }
+      },
+      {
+        "name": "Lookup_WaveConfig",
+        "type": "Lookup",
+        "dependsOn": [{ "activity": "SetVar_WaveRunId", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:05:00", "retry": 2, "retryIntervalInSeconds": 15 },
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "storeSettings": { "type": "AzureBlobFSReadSettings", "recursive": false }
+          },
+          "dataset": {
+            "referenceName": "ds_adls_json",
+            "type": "DatasetReference",
+            "parameters": {
+              "folder":   "config/waves",
+              "fileName": "@concat(pipeline().parameters.waveKey, '.json')"
+            }
+          },
+          "firstRowOnly": true
+        }
+      },
+      {
+        "name": "SetVar_OnDepFailure",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Lookup_WaveConfig", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "onDepFailure",
+          "value": "@coalesce(activity('Lookup_WaveConfig').output.firstRow.failurePolicy.onDependencyFailure, 'skipDependent')"
+        }
+      },
+      {
+        "name": "SetVar_OnEntityFailure",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Lookup_WaveConfig", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "onEntityFailure",
+          "value": "@coalesce(activity('Lookup_WaveConfig').output.firstRow.failurePolicy.onEntityFailure, 'continueIndependent')"
+        }
+      },
+      {
+        "name": "Filter_Phase1",
+        "type": "Filter",
+        "dependsOn": [{ "activity": "Lookup_WaveConfig", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "items":     { "value": "@activity('Lookup_WaveConfig').output.firstRow.entities", "type": "Expression" },
+          "condition": { "value": "@equals(item().phase, 1)", "type": "Expression" }
+        }
+      },
+      {
+        "name": "Filter_Phase2",
+        "type": "Filter",
+        "dependsOn": [{ "activity": "Lookup_WaveConfig", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "items":     { "value": "@activity('Lookup_WaveConfig').output.firstRow.entities", "type": "Expression" },
+          "condition": { "value": "@equals(item().phase, 2)", "type": "Expression" }
+        }
+      },
+      {
+        "name": "Filter_Phase3",
+        "type": "Filter",
+        "dependsOn": [{ "activity": "Lookup_WaveConfig", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "items":     { "value": "@activity('Lookup_WaveConfig').output.firstRow.entities", "type": "Expression" },
+          "condition": { "value": "@equals(item().phase, 3)", "type": "Expression" }
+        }
+      },
+      {
+        "name": "ForEach_Phase1Entity",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "Filter_Phase1", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "items": { "value": "@activity('Filter_Phase1').output.Value", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 4,
+          "activities": [
+            {
+              "name": "ExecutePipeline_EntityP1",
+              "type": "ExecutePipeline",
+              "typeProperties": {
+                "pipeline": { "referenceName": "pl_master_orchestrator", "type": "PipelineReference" },
+                "waitOnCompletion": true,
+                "parameters": {
+                  "entityKey":  "@item().entityKey",
+                  "direction":  "@activity('Lookup_WaveConfig').output.firstRow.direction",
+                  "waveRunId":  "@variables('waveRunId')",
+                  "runMode":    "@pipeline().parameters.runMode",
+                  "forceFull":  "@pipeline().parameters.forceFull"
+                }
+              }
+            },
+            {
+              "name": "Append_FailedP1",
+              "type": "AppendVariable",
+              "dependsOn": [{ "activity": "ExecutePipeline_EntityP1", "dependencyConditions": ["Failed"] }],
+              "typeProperties": { "variableName": "failedEntities", "value": "@item().entityKey" }
+            },
+            {
+              "name": "Append_SuccessP1",
+              "type": "AppendVariable",
+              "dependsOn": [{ "activity": "ExecutePipeline_EntityP1", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": { "variableName": "successEntities", "value": "@item().entityKey" }
+            }
+          ]
+        }
+      },
+      {
+        "name": "ForEach_Phase2Entity",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "ForEach_Phase1Entity", "dependencyConditions": ["Succeeded", "Completed"] }],
+        "typeProperties": {
+          "items": { "value": "@activity('Filter_Phase2').output.Value", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 4,
+          "activities": [
+            {
+              "name": "If_DependenciesOk_P2",
+              "type": "IfCondition",
+              "description": "B011: skip this entity when any dependsOn failed AND policy is skipDependent.",
+              "typeProperties": {
+                "expression": {
+                  "value": "@or(equals(variables('onDepFailure'), 'runAnyway'), empty(intersection(coalesce(item().dependsOn, json('[]')), variables('failedEntities'))))",
+                  "type": "Expression"
+                },
+                "ifTrueActivities": [
+                  {
+                    "name": "ExecutePipeline_EntityP2",
+                    "type": "ExecutePipeline",
+                    "typeProperties": {
+                      "pipeline": { "referenceName": "pl_master_orchestrator", "type": "PipelineReference" },
+                      "waitOnCompletion": true,
+                      "parameters": {
+                        "entityKey":  "@item().entityKey",
+                        "direction":  "@activity('Lookup_WaveConfig').output.firstRow.direction",
+                        "waveRunId":  "@variables('waveRunId')",
+                        "runMode":    "@pipeline().parameters.runMode",
+                        "forceFull":  "@pipeline().parameters.forceFull"
+                      }
+                    }
+                  },
+                  {
+                    "name": "Append_FailedP2",
+                    "type": "AppendVariable",
+                    "dependsOn": [{ "activity": "ExecutePipeline_EntityP2", "dependencyConditions": ["Failed"] }],
+                    "typeProperties": { "variableName": "failedEntities", "value": "@item().entityKey" }
+                  },
+                  {
+                    "name": "Append_SuccessP2",
+                    "type": "AppendVariable",
+                    "dependsOn": [{ "activity": "ExecutePipeline_EntityP2", "dependencyConditions": ["Succeeded"] }],
+                    "typeProperties": { "variableName": "successEntities", "value": "@item().entityKey" }
+                  }
+                ],
+                "ifFalseActivities": [
+                  {
+                    "name": "Append_SkippedP2",
+                    "type": "AppendVariable",
+                    "typeProperties": { "variableName": "skippedEntities", "value": "@item().entityKey" }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "ForEach_Phase3Entity",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "ForEach_Phase2Entity", "dependencyConditions": ["Succeeded", "Completed"] }],
+        "typeProperties": {
+          "items": { "value": "@activity('Filter_Phase3').output.Value", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 4,
+          "activities": [
+            {
+              "name": "If_DependenciesOk_P3",
+              "type": "IfCondition",
+              "typeProperties": {
+                "expression": {
+                  "value": "@or(equals(variables('onDepFailure'), 'runAnyway'), empty(intersection(coalesce(item().dependsOn, json('[]')), variables('failedEntities'))))",
+                  "type": "Expression"
+                },
+                "ifTrueActivities": [
+                  {
+                    "name": "ExecutePipeline_EntityP3",
+                    "type": "ExecutePipeline",
+                    "typeProperties": {
+                      "pipeline": { "referenceName": "pl_master_orchestrator", "type": "PipelineReference" },
+                      "waitOnCompletion": true,
+                      "parameters": {
+                        "entityKey":  "@item().entityKey",
+                        "direction":  "@activity('Lookup_WaveConfig').output.firstRow.direction",
+                        "waveRunId":  "@variables('waveRunId')",
+                        "runMode":    "@pipeline().parameters.runMode",
+                        "forceFull":  "@pipeline().parameters.forceFull"
+                      }
+                    }
+                  },
+                  {
+                    "name": "Append_FailedP3",
+                    "type": "AppendVariable",
+                    "dependsOn": [{ "activity": "ExecutePipeline_EntityP3", "dependencyConditions": ["Failed"] }],
+                    "typeProperties": { "variableName": "failedEntities", "value": "@item().entityKey" }
+                  }
+                ],
+                "ifFalseActivities": [
+                  {
+                    "name": "Append_SkippedP3",
+                    "type": "AppendVariable",
+                    "typeProperties": { "variableName": "skippedEntities", "value": "@item().entityKey" }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Copy_WaveSummary",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "ForEach_Phase3Entity", "dependencyConditions": ["Succeeded", "Completed"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "waveKey",      "value": "@pipeline().parameters.waveKey" },
+              { "name": "waveRunId",    "value": "@variables('waveRunId')" },
+              { "name": "direction",    "value": "@activity('Lookup_WaveConfig').output.firstRow.direction" },
+              { "name": "startedAt",    "value": "@pipeline().TriggerTime" },
+              { "name": "completedAt",  "value": "@utcNow()" },
+              { "name": "entityCount",     "value": "@length(activity('Lookup_WaveConfig').output.firstRow.entities)" },
+              { "name": "successCount",    "value": "@length(variables('successEntities'))" },
+              { "name": "failedCount",     "value": "@length(variables('failedEntities'))" },
+              { "name": "skippedCount",    "value": "@length(variables('skippedEntities'))" },
+              { "name": "failedEntities",  "value": "@string(variables('failedEntities'))" },
+              { "name": "skippedEntities", "value": "@string(variables('skippedEntities'))" },
+              { "name": "runMode",         "value": "@pipeline().parameters.runMode" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('audit/wave_runs/', variables('waveRunId'))",
+            "fileName": "wave_summary.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('audit/wave_runs/', variables('waveRunId'))",
+            "fileName": "wave_summary.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/orchestrators" }
+  }
+}

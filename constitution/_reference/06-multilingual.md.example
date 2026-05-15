@@ -1,0 +1,45 @@
+<!--
+Scaffolding starter for agents/{agent}/constitution/06-multilingual.md.
+Multilingual support scope and rules per sub-domain.
+-->
+---
+agent: {agent-slug}
+version: 1.0.0
+last-reviewed: YYYY-MM-DD
+owner: platform
+---
+
+# Multilingual Considerations — {Agent Name}
+
+## Scope per channel
+
+Per `projects/{p}/project.config.yaml multilingual`:
+
+| Channel | Multilingual support | Default language | Supported languages |
+|---|---|---|---|
+| crm | per project.config | per project.config | per project.config |
+| portal | per project.config | per project.config | per project.config |
+| canvas | per project.config | per project.config | per project.config |
+| reports | per project.config | per project.config | per project.config |
+
+This agent's relevant channels: list which channels apply to this agent's work products (e.g., CE owns crm + portal + canvas; reporting owns reports; F&O has its own label translation system).
+
+## Translation approach per artefact type
+
+For each artefact type this agent produces, document how labels and content are localised. Common patterns:
+
+- **Resource files / .resx** — for plugin error messages, label tables
+- **Translation table entities** — entity-based localisation
+- **Localised solution components** — per-locale solution variants
+- **Power BI dataset translations** — built-in PBI translation framework
+- **Liquid template fragments** — for portal multilingual pages
+
+## What's NOT translated
+
+- Section IDs (`FR-01`, `TS-03`) — always English
+- Stable code identifiers (entity names, field schema names)
+- Comments in code
+
+## Verification
+
+When `multilingual.{channel}: true`, the test plan must include a "Multilingual" suite covering label rendering in non-default languages, RTL support (where applicable), and locale-specific number/date formatting.

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "env": {
+      "value": "dev"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "nameSuffix": {
+      "value": "opx001"
+    },
+    "dataverseUrl": {
+      "value": "https://opex-dev.crm.dynamics.com"
+    },
+    "dataverseSpnClientId": {
+      "value": "REPLACE-WITH-YOUR-SPN-CLIENT-ID"
+    },
+    "sftpHost": {
+      "value": "sftp.oraclefusion.example.com"
+    },
+    "sftpPort": {
+      "value": 22
+    },
+    "sftpUserName": {
+      "value": "opex_integration"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "df_transform_site_inbound",
+  "type": "Microsoft.DataFactory/factories/dataflows",
+  "apiVersion": "2018-06-01",
+  "properties": {
+    "type": "MappingDataFlow",
+    "typeProperties": {
+      "sources": [],
+      "sinks": [],
+      "transformations": [],
+      "scriptLines": [
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    output(\n        PARTY_SITE_NUMBER as string,\n        ADDRESS1 as string,\n        ADDRESS2 as string,\n        ADDRESS3 as string,\n        CITY as string,\n        POSTAL_CODE as string,\n        STATE as string,\n        COUNTRY as string,\n        COUNTY as string,\n        PROVINCE as string,\n        ACCT_SITE_STATUS as string,\n        SITE_START_DATE as string,\n        END_DATE as string,\n        ACCOUNT_NUMBER as string\n    ),\n    format: 'parquet'\n) ~> srcStaged",
+        "srcStaged derive(\n    msdyn_name = toString(PARTY_SITE_NUMBER),\n    msdyn_address1 = toString(ADDRESS1),\n    msdyn_address2 = toString(ADDRESS2),\n    msdyn_address3 = toString(ADDRESS3),\n    msdyn_city = toString(CITY),\n    msdyn_postalcode = toString(POSTAL_CODE),\n    msdyn_stateorprovince = toString(STATE),\n    msdyn_country = toString(COUNTRY),\n    opx_county = toString(COUNTY),\n    opx_province = toString(PROVINCE),\n    statecode = case(equals(ACCT_SITE_STATUS, 'A'), 0, equals(ACCT_SITE_STATUS, 'I'), 1, 0),\n    msdyn_LocationOpenDate = toTimestamp(SITE_START_DATE, 'yyyy-MM-dd'),\n    opx_endDate = toTimestamp(END_DATE, 'yyyy-MM-dd'),\n    opx_accountNumber = toString(ACCOUNT_NUMBER)\n) ~> dc_1",
+        "dc_1 derive(\n    __row_valid = (isNull(ACCT_SITE_STATUS) || !isNull(statecode))\n) ~> dc_2",
+        "dc_2 split(\n    __row_valid == true(),\n    disjoint: false\n) ~> cs_1@(valid)",
+        "cs_1@valid sink(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    format: 'parquet',\n    skipDuplicateMapInputs: true,\n    skipDuplicateMapOutputs: true,\n    errorHandlingOption: 'stopOnFirstError'\n) ~> sinkFinal",
+        "cs_1 sink(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    format: 'parquet',\n    skipDuplicateMapInputs: true,\n    skipDuplicateMapOutputs: true,\n    errorHandlingOption: 'stopOnFirstError'\n) ~> sinkTransformErrors"
+      ]
+    }
+  }
+}

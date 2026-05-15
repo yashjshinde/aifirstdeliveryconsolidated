@@ -1,0 +1,36 @@
+{
+  "$schemaVersion": "1",
+  "waveKey": "oracle_fusion_daily",
+  "direction": "inbound",
+  "entities": [
+    {
+      "entityKey": "customer",
+      "phase": 1,
+      "dependsOn": [],
+      "concurrent": false
+    },
+    {
+      "entityKey": "site",
+      "phase": 2,
+      "dependsOn": ["customer"],
+      "concurrent": true
+    },
+    {
+      "entityKey": "contact",
+      "phase": 2,
+      "dependsOn": ["customer"],
+      "concurrent": true
+    }
+  ],
+  "failurePolicy": {
+    "onEntityFailure": "continueIndependent",
+    "onDependencyFailure": "skipDependent",
+    "wavePartialThresholdPct": 10
+  },
+  "masterCacheRefresh": "betweenPhases",
+  "configVersion": "latest",
+  "notification": {
+    "onWaveFailure": [],
+    "onWavePartial": []
+  }
+}

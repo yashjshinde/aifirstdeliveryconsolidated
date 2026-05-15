@@ -1,0 +1,365 @@
+{
+  "$schemaVersion": "1",
+  "entityKey": "customer",
+  "direction": "inbound",
+
+  "source": {
+    "system": "SFTP",
+    "format": "csv",
+    "sftpLinkedService": "ls_sftp_fusion",
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "headerRow": 1,
+    "inbound": {
+      "pathPattern": "/exports/HZ_CUST_ACCOUNTS_*.csv",
+      "worksheet": null,
+      "archiveTo": "/archive/customer/{yyyy}/{MM}/{dd}/",
+      "onMultipleFiles": "concat"
+    }
+  },
+
+  "target": {
+    "system": "Dataverse",
+    "entityLogicalName": "account",
+    "alternateKey": ["accountnumber"],
+    "inbound": {
+      "writeMode": "upsert",
+      "bypassPlugins": true
+    }
+  },
+
+  "dedup": {
+    "enabled": true,
+    "checksumColumns": ["ACCOUNT_NUMBER"],
+    "onDuplicate": "keepLatest"
+  },
+
+  "dateTime": {
+    "defaultTimeZone": "UTC",
+    "format": "yyyy-MM-dd HH:mm:ss"
+  },
+
+  "lookups": {
+    "createMissingDefault": false
+  },
+
+  "fields": [
+    {
+      "source": "ACCOUNT_NUMBER",
+      "sourceType": "text",
+      "target": "accountnumber",
+      "targetType": "text",
+      "maxLength": 100,
+      "mandatory": true,
+      "validations": ["notEmpty", "maxLength:100"],
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "CUSTOMER_NAME",
+      "sourceType": "text",
+      "target": "name",
+      "targetType": "text",
+      "maxLength": 160,
+      "mandatory": true,
+      "validations": ["notEmpty", "maxLength:160"],
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "ACCOUNT_STATUS",
+      "sourceType": "text",
+      "target": "statecode",
+      "targetType": "state",
+      "mandatory": true,
+      "defaultValue": 0,
+      "transform": {
+        "type": "state",
+        "forward": {
+          "map": { "A": 0, "I": 1 },
+          "default": 0
+        }
+      }
+    },
+    {
+      "source": "ACCOUNT_TYPE",
+      "sourceType": "text",
+      "target": "opx_AccountType",
+      "targetType": "choice",
+      "transform": {
+        "type": "choice",
+        "forward": {
+          "map": {
+            "Billing Account": 884870000,
+            "Service Account": 884870001,
+            "Both": 884870002
+          },
+          "default": null,
+          "onMissing": "fail",
+          "normalize": ["trim"]
+        }
+      }
+    },
+    {
+      "source": "EQUIPMET_DISCOUNT",
+      "sourceType": "text",
+      "target": "opx_EquipmentDiscountId",
+      "targetType": "lookup",
+      "transform": {
+        "type": "lookup",
+        "forward": {
+          "referenceTable": "opx_equipmentdiscount",
+          "entitySetName": "opx_equipmentdiscounts",
+          "navigationProperty": "opx_EquipmentDiscount",
+          "refField": "opx_code",
+          "primaryIdField": "opx_equipmentdiscountid",
+          "matchPolicy": "exact",
+          "createIfMissing": false,
+          "onMissing": "error",
+          "cacheKey": "opx_equipmentdiscount.opx_code"
+        }
+      }
+    },
+    {
+      "source": "PARTS_DISCOUNT",
+      "sourceType": "text",
+      "target": "opx_partdiscountid",
+      "targetType": "lookup",
+      "transform": {
+        "type": "lookup",
+        "forward": {
+          "referenceTable": "opx_partdiscount",
+          "entitySetName": "opx_partdiscounts",
+          "navigationProperty": "opx_PartDiscount",
+          "refField": "opx_code",
+          "primaryIdField": "opx_partdiscountid",
+          "matchPolicy": "exact",
+          "createIfMissing": false,
+          "onMissing": "error",
+          "cacheKey": "opx_partdiscount.opx_code"
+        }
+      }
+    },
+    {
+      "source": "NATIONAL_DISCOUNT",
+      "sourceType": "text",
+      "target": "opx_nationaldiscountid",
+      "targetType": "lookup",
+      "transform": {
+        "type": "lookup",
+        "forward": {
+          "referenceTable": "opx_nationaldiscount",
+          "entitySetName": "opx_nationaldiscounts",
+          "navigationProperty": "opx_NationalDiscount",
+          "refField": "opx_code",
+          "primaryIdField": "opx_nationaldiscountid",
+          "matchPolicy": "exact",
+          "createIfMissing": false,
+          "onMissing": "error",
+          "cacheKey": "opx_nationaldiscount.opx_code"
+        }
+      }
+    },
+    {
+      "source": "CATEGORY_CODE",
+      "sourceType": "text",
+      "target": "opx_customercategoryid",
+      "targetType": "lookup",
+      "transform": {
+        "type": "lookup",
+        "forward": {
+          "referenceTable": "opx_customercategory",
+          "entitySetName": "opx_customercategories",
+          "navigationProperty": "opx_CustomerCategory",
+          "refField": "opx_code",
+          "primaryIdField": "opx_customercategoryid",
+          "matchPolicy": "exact",
+          "createIfMissing": false,
+          "onMissing": "error",
+          "cacheKey": "opx_customercategory.opx_code"
+        }
+      }
+    },
+    {
+      "source": "BILL_TO_ACCOUNT",
+      "sourceType": "text",
+      "target": "msdyn_billingaccount",
+      "targetType": "lookup",
+      "loadPhase": 2,
+      "transform": {
+        "type": "lookup",
+        "forward": {
+          "referenceTable": "account",
+          "entitySetName": "accounts",
+          "navigationProperty": "msdyn_billingAccount",
+          "refField": "accountnumber",
+          "primaryIdField": "accountid",
+          "matchPolicy": "exact",
+          "createIfMissing": false,
+          "onMissing": "passNull",
+          "nullBehavior": "skip",
+          "cacheKey": "account.accountnumber"
+        }
+      }
+    },
+    {
+      "source": "PRICE_LIST",
+      "sourceType": "text",
+      "target": "defaultpricelevelid",
+      "targetType": "lookup",
+      "transform": {
+        "type": "lookup",
+        "forward": {
+          "referenceTable": "pricelevel",
+          "entitySetName": "pricelevels",
+          "navigationProperty": "defaultpricelevelid",
+          "refField": "name",
+          "primaryIdField": "pricelevelid",
+          "matchPolicy": "exact",
+          "createIfMissing": false,
+          "onMissing": "passNull",
+          "cacheKey": "pricelevel.name"
+        }
+      }
+    },
+    {
+      "source": "FREIGHT_TERMS",
+      "sourceType": "text",
+      "target": "address1_freighttermscode",
+      "targetType": "choice",
+      "transform": {
+        "type": "choice",
+        "forward": {
+          "map": {},
+          "default": null,
+          "onMissing": "passThrough"
+        }
+      }
+    },
+    {
+      "source": "SHIPPING_METHOD",
+      "sourceType": "text",
+      "target": "address1_shippingmethodcode",
+      "targetType": "choice",
+      "transform": {
+        "type": "choice",
+        "forward": {
+          "map": {},
+          "default": null,
+          "onMissing": "passThrough"
+        }
+      }
+    },
+    {
+      "source": "Credit Hold",
+      "sourceType": "text",
+      "target": "creditonhold",
+      "targetType": "bool",
+      "transform": {
+        "type": "yesNo",
+        "forward": {
+          "trueValues": ["Y", "Yes", "YES", "1", "true"],
+          "falseValues": ["N", "No", "NO", "0", "false"]
+        }
+      }
+    },
+    {
+      "source": "Payment Term",
+      "sourceType": "text",
+      "target": "paymenttermscode",
+      "targetType": "choice",
+      "mandatory": true,
+      "transform": {
+        "type": "choice",
+        "forward": {
+          "map": {},
+          "default": null,
+          "onMissing": "fail"
+        }
+      }
+    },
+    {
+      "source": "Large Customer",
+      "sourceType": "text",
+      "target": "opx_largecustomerid",
+      "targetType": "lookup",
+      "transform": {
+        "type": "lookup",
+        "forward": {
+          "referenceTable": "opx_largecustomer",
+          "entitySetName": "opx_largecustomers",
+          "navigationProperty": "opx_LargeCustomer",
+          "refField": "opx_code",
+          "primaryIdField": "opx_largecustomerid",
+          "matchPolicy": "exact",
+          "createIfMissing": false,
+          "onMissing": "error",
+          "cacheKey": "opx_largecustomer.opx_code"
+        }
+      }
+    },
+    {
+      "source": "Site Number",
+      "sourceType": "text",
+      "target": "opex_SiteNumber",
+      "targetType": "text",
+      "maxLength": 100,
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "LAST_UPDATE_DATE",
+      "sourceType": "datetime",
+      "target": "modifiedon",
+      "targetType": "datetime",
+      "transform": {
+        "type": "dateTime",
+        "forward": {
+          "sourceTz": "UTC",
+          "targetTz": "UTC",
+          "inputFormat": "yyyy-MM-dd HH:mm:ss",
+          "outputFormat": "yyyy-MM-ddTHH:mm:ssZ"
+        }
+      }
+    },
+    {
+      "source": "REL_ACCOUNT_NUMBER",
+      "sourceType": "text",
+      "target": "opx_fusionRefAccountNumber",
+      "targetType": "text",
+      "maxLength": 100,
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "CREATED_BY",
+      "sourceType": "text",
+      "target": "opx_sourceCreatedBy",
+      "targetType": "text",
+      "maxLength": 200,
+      "transform": { "type": "direct" }
+    },
+    {
+      "source": "CREATION_DATE",
+      "sourceType": "datetime",
+      "target": "overriddencreatedon",
+      "targetType": "datetime",
+      "transform": {
+        "type": "dateTime",
+        "forward": {
+          "sourceTz": "UTC",
+          "targetTz": "UTC",
+          "inputFormat": "yyyy-MM-dd HH:mm:ss",
+          "outputFormat": "yyyy-MM-ddTHH:mm:ssZ"
+        }
+      }
+    },
+    {
+      "source": "LAST_UPDATED_BY",
+      "sourceType": "text",
+      "target": "opx_sourceModifiedBy",
+      "targetType": "text",
+      "maxLength": 200,
+      "transform": { "type": "direct" }
+    }
+  ],
+
+  "relationships": [],
+  "postLoadActions": []
+}

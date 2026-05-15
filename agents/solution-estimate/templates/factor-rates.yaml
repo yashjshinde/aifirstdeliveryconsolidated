@@ -1,0 +1,315 @@
+# factor-rates.yaml -- the 103-factor catalogue with VS/S/M/C/VC hour rates.
+# Source of truth per ADR-0009. 95 SI factors + 8 reintroduced = 103.
+#
+# Schema per factor entry:
+#   <factor-key>:
+#     name: "<human-readable factor name>"
+#     category: <one of the 11 categories>
+#     rates: { vs: <hrs|null>, s: <hrs|null>, m: <hrs|null>, c: <hrs|null>, vc: <hrs|null> }
+#
+# null means "rate undefined for this complexity in the canonical source -- do not assume 0".
+# Per-project overrides: projects/{p}/_aggregator/estimation/factor-rates-override.yaml
+#
+# Validated implicitly by the /estimate command body. No JSON Schema in v1 (the catalogue is
+# semantically rich enough that a schema would just check shape, not correctness).
+
+version: 1
+
+# =============================================================================
+# CRM Core Development & Customization (17 factors, IDs 1-17)
+# =============================================================================
+crm-existing-table-cut:
+  name: "CRM Existing Table C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: null, s: 3, m: 6, c: 14, vc: 20 }
+
+crm-new-table-cut:
+  name: "CRM New Table C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: null, s: 4, m: 8, c: 16, vc: 22 }
+
+crm-new-relationship-cut:
+  name: "CRM New Relationship C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: null, s: 0.5, m: 1, c: 1.5, vc: 2 }
+
+crm-plugin-cut:
+  name: "CRM Plugin C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 6, s: 12, m: 24, c: 36, vc: 48 }
+
+crm-workflow-assembly-cut:
+  name: "CRM Workflow Assembly C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 6, s: 12, m: 24, c: 36, vc: 48 }
+
+crm-web-resource-ui-cut:
+  name: "CRM Web Resource UI C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 6, s: 12, m: 24, c: 36, vc: 48 }
+
+crm-workflow-cut:
+  name: "CRM Workflow C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 0.5, s: 1, m: 4, c: 8, vc: 24 }
+
+crm-staged-workflow-cut:
+  name: "CRM Staged Workflow C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 0.5, s: 2, m: 5, c: 10, vc: 26 }
+
+crm-dialog-process-cut:
+  name: "CRM Dialog Process C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 0.5, s: 1, m: 1, c: 2, vc: 3 }
+
+crm-dashboard-cut:
+  name: "CRM Dashboard C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 1, s: 3, m: 6, c: 12, vc: 18 }
+
+crm-custom-action-cut:
+  name: "CRM Custom Action C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 6, s: 12, m: 24, c: 36, vc: 48 }
+
+crm-modify-report-cut:
+  name: "CRM Modify Report C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 1, s: 2, m: 4, c: 8, vc: 16 }
+
+additional-crm-form-cut:
+  name: "Additional CRM Form C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 0.5, s: 1, m: 2, c: 4, vc: 8 }
+
+business-process-flow-cut:
+  name: "Business Process Flow C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 1, s: 2, m: 4, c: 6, vc: 10 }
+
+business-rule-cut:
+  name: "Business Rule C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 0.3, s: 1, m: 1, c: 2, vc: 4 }
+
+additional-js-on-entity:
+  name: "Additional Javascript on Entity Build"
+  category: "CRM Core Dev"
+  rates: { vs: 1, s: 2, m: 4, c: 8, vc: 12 }
+
+action-cut:
+  name: "Action C&UT"
+  category: "CRM Core Dev"
+  rates: { vs: 1, s: 2, m: 4, c: 8, vc: 20 }
+
+# =============================================================================
+# Code / ASP.NET / Web Services (6 factors, IDs 18-23)
+# =============================================================================
+aspnet-alternate-page-cut:
+  name: "ASP.NET Alternate CRM Page C&UT"
+  category: "Code ASP.NET"
+  rates: { vs: 6, s: 12, m: 24, c: 36, vc: 48 }
+
+aspnet-page-cut:
+  name: "ASP.NET Page C&UT (CRM)"
+  category: "Code ASP.NET"
+  rates: { vs: 12, s: 20, m: 40, c: 80, vc: 100 }
+
+business-entity-component-cut:
+  name: "Business Entity Component C&UT (CRM)"
+  category: "Code ASP.NET"
+  rates: { vs: null, s: 8, m: 12, c: 24, vc: null }
+
+data-access-component-cut:
+  name: "Data Access Component C&UT (CRM)"
+  category: "Code ASP.NET"
+  rates: { vs: null, s: 16, m: 32, c: 48, vc: null }
+
+system-service-cut:
+  name: "System Service C&UT (CRM)"
+  category: "Code ASP.NET"
+  rates: { vs: null, s: 16, m: 32, c: 64, vc: null }
+
+web-service-cut:
+  name: "Web Service C&UT"
+  category: "Code ASP.NET"
+  rates: { vs: null, s: 8, m: 16, c: 32, vc: null }
+
+# =============================================================================
+# Reports & Dashboards (5 factors, IDs 24-28)
+# =============================================================================
+new-crm-ssrs-pbi-report-cut:
+  name: "New CRM SSRS / Power BI Report - C&UT"
+  category: "Reports & Dashboards"
+  rates: { vs: 2, s: 4, m: 8, c: 16, vc: 24 }
+
+new-crm-ssrs-report:
+  name: "New CRM SSRS Report"
+  category: "Reports & Dashboards"
+  rates: { vs: 3, s: 6, m: 10, c: 16, vc: 20 }
+
+new-crm-report-wizard:
+  name: "New CRM Report Wizard Report"
+  category: "Reports & Dashboards"
+  rates: { vs: 0.5, s: 1, m: 1.5, c: 2, vc: 3 }
+
+modify-existing-crm-report:
+  name: "Modify Existing CRM Report"
+  category: "Reports & Dashboards"
+  rates: { vs: 4, s: 8, m: 12, c: 16, vc: 20 }
+
+dashboard-config:
+  name: "Dashboard Config"
+  category: "Reports & Dashboards"
+  rates: { vs: 1, s: 3, m: 6, c: 12, vc: 18 }
+
+# =============================================================================
+# Integration & Data Migration (3 SI factors, IDs 29-31)
+# =============================================================================
+simple-etl-package-cut:
+  name: "Simple ETL Package C&UT (CRM)"
+  category: "Integration & Data Migration"
+  rates: { vs: 8, s: 12, m: 24, c: 40, vc: 60 }
+
+data-migration-ssis-kingsway:
+  name: "Data Migration / Integration (SSIS Kingsway)"
+  category: "Integration & Data Migration"
+  rates: { vs: null, s: 12, m: 24, c: 40, vc: 60 }
+
+data-migration-adf:
+  name: "Data Migration / Integration (ADF)"
+  category: "Integration & Data Migration"
+  rates: { vs: null, s: 12, m: 24, c: 40, vc: 60 }
+
+# =============================================================================
+# Power Platform (5 factors, IDs 32-36)
+# =============================================================================
+power-apps-canvas-screen:
+  name: "Power Apps Canvas App Screen"
+  category: "Power Platform"
+  rates: { vs: 4, s: 8, m: 16, c: 24, vc: 40 }
+
+power-automate-flow:
+  name: "Power Automate Flow"
+  category: "Power Platform"
+  rates: { vs: 1, s: 2, m: 4, c: 8, vc: 16 }
+
+dynamics-portal-page-config:
+  name: "Dynamics Portal Page (Configuration)"
+  category: "Power Platform"
+  rates: { vs: 4, s: 8, m: 12, c: 18, vc: 24 }
+
+dynamics-portal-page-styling:
+  name: "Dynamics Portal Page (Styling)"
+  category: "Power Platform"
+  rates: { vs: 2, s: 4, m: 8, c: 16, vc: 24 }
+
+dynamics-portal-web-role:
+  name: "Dynamics Portal Web Role"
+  category: "Power Platform"
+  rates: { vs: null, s: null, m: 2, c: null, vc: null }
+
+# =============================================================================
+# Sales Module (15 factors, IDs 37-51)
+# =============================================================================
+account-management:        { name: "Account Management",          category: "Sales", rates: { vs: null, s: 3, m: 6, c: 14, vc: 20 } }
+contact-management:        { name: "Contact Management",          category: "Sales", rates: { vs: null, s: 3, m: 6, c: 14, vc: 20 } }
+activity-note-task-mgmt:   { name: "Activity, Note and Task Management", category: "Sales", rates: { vs: null, s: 3, m: 6, c: 14, vc: 20 } }
+lead-management:           { name: "Lead Management",             category: "Sales", rates: { vs: null, s: 3, m: 6, c: 14, vc: 20 } }
+opportunity-management:    { name: "Opportunity Management",      category: "Sales", rates: { vs: null, s: 3, m: 6, c: 14, vc: 20 } }
+quote-management:          { name: "Quote Management",            category: "Sales", rates: { vs: null, s: 4, m: 7, c: 16, vc: null } }
+order-management:          { name: "Order Management",            category: "Sales", rates: { vs: null, s: 4, m: 7, c: 16, vc: null } }
+invoice-management:        { name: "Invoice Management",          category: "Sales", rates: { vs: null, s: 4, m: 7, c: 16, vc: null } }
+competitors:               { name: "Competitors",                 category: "Sales", rates: { vs: null, s: 1, m: 2, c: 4, vc: 6 } }
+product-catalog:           { name: "Product Catalog",             category: "Sales", rates: { vs: null, s: 4, m: 7, c: 16, vc: null } }
+sales-territories:         { name: "Sales Territories",           category: "Sales", rates: { vs: null, s: null, m: 3, c: null, vc: null } }
+sales-literature:          { name: "Sales Literature",            category: "Sales", rates: { vs: null, s: 1, m: 2, c: 4, vc: 8 } }
+sales-custom-entities:     { name: "Sales Custom Entities",       category: "Sales", rates: { vs: null, s: 4, m: 8, c: 16, vc: 22 } }
+sales-custom-relationships: { name: "Sales Custom Relationships", category: "Sales", rates: { vs: null, s: 0.5, m: 1, c: 1.5, vc: 2 } }
+goals-and-goal-metrics:    { name: "Goals and Goal Metrics",      category: "Sales", rates: { vs: 1, s: 1, m: 2, c: 3, vc: 4 } }
+
+# =============================================================================
+# Service Module (10 factors, IDs 52-61)
+# =============================================================================
+case-management:           { name: "Case Management",             category: "Service", rates: { vs: null, s: 3, m: 6, c: 14, vc: 20 } }
+contract-management:       { name: "Contract Management",         category: "Service", rates: { vs: null, s: 4, m: 7, c: 16, vc: 22 } }
+queue-management:          { name: "Queue Management",            category: "Service", rates: { vs: null, s: null, m: 4, c: null, vc: null } }
+facility-equipment:        { name: "Facility/Equipment",          category: "Service", rates: { vs: null, s: 3, m: 5, c: 11, vc: 16 } }
+services-setup:            { name: "Services Setup",              category: "Service", rates: { vs: null, s: 3, m: 5, c: 11, vc: 16 } }
+sites-setup:               { name: "Sites Setup",                 category: "Service", rates: { vs: null, s: 3, m: 5, c: 11, vc: 16 } }
+service-custom-entities:   { name: "Service Custom Entities",     category: "Service", rates: { vs: null, s: 4, m: 8, c: 16, vc: 22 } }
+service-custom-relationships: { name: "Service Custom Relationships", category: "Service", rates: { vs: null, s: 0.5, m: 1, c: 1.5, vc: 2 } }
+knowledge-base:            { name: "Knowledge Base",              category: "Service", rates: { vs: null, s: 0.5, m: 1, c: 2, vc: 4 } }
+subject-tree:              { name: "Subject Tree",                category: "Service", rates: { vs: null, s: 0.5, m: 1, c: 2, vc: 3 } }
+
+# =============================================================================
+# Marketing Module (5 factors, IDs 62-66)
+# =============================================================================
+campaign:                  { name: "Campaign",                    category: "Marketing", rates: { vs: null, s: 3, m: 6, c: 14, vc: 20 } }
+marketing-custom-entities: { name: "Marketing Custom Entities",   category: "Marketing", rates: { vs: null, s: 4, m: 8, c: 16, vc: 22 } }
+marketing-custom-relationships: { name: "Marketing Custom Relationships", category: "Marketing", rates: { vs: null, s: 0.5, m: 1, c: 1.5, vc: 2 } }
+quick-campaigns:           { name: "Quick Campaigns",             category: "Marketing", rates: { vs: null, s: 0.5, m: 1, c: 2, vc: 3 } }
+marketing-lists:           { name: "Marketing Lists",             category: "Marketing", rates: { vs: null, s: 0.5, m: 1, c: 2, vc: 3 } }
+
+# =============================================================================
+# Core Foundation (6 factors, IDs 67-72)
+# =============================================================================
+core-custom-entities:      { name: "Core Custom Entities",        category: "Core Foundation", rates: { vs: null, s: 4, m: 8, c: 16, vc: 22 } }
+core-custom-relationships: { name: "Core Custom Relationships",   category: "Core Foundation", rates: { vs: null, s: 0.5, m: 1, c: 1.5, vc: 2 } }
+email:                     { name: "Email",                       category: "Core Foundation", rates: { vs: null, s: 0.5, m: 1, c: 1.5, vc: 2 } }
+kb-article:                { name: "KB Article",                  category: "Core Foundation", rates: { vs: null, s: 0.5, m: 1, c: 1.5, vc: 2 } }
+mail-merge:                { name: "Mail Merge",                  category: "Core Foundation", rates: { vs: null, s: 0.5, m: 1, c: 1.5, vc: 2 } }
+connections:               { name: "Connections",                 category: "Core Foundation", rates: { vs: null, s: 2, m: 3, c: 4, vc: null } }
+
+# =============================================================================
+# UI / Navigation (6 factors, IDs 73-78)
+# =============================================================================
+site-map:                  { name: "Site Map",                    category: "UI/Navigation", rates: { vs: null, s: 1, m: 3, c: 5, vc: 8 } }
+multi-currency:            { name: "Multi-Currency",              category: "UI/Navigation", rates: { vs: null, s: 1, m: 3, c: 5, vc: 8 } }
+ribbon-command-bar:        { name: "Ribbon / Command Bar",        category: "UI/Navigation", rates: { vs: null, s: 1, m: 2, c: 4, vc: 8 } }
+command-bar-ribbon-cut:    { name: "Command Bar / Ribbon C&UT",   category: "UI/Navigation", rates: { vs: null, s: 1, m: 1.5, c: 3, vc: null } }
+role-based-form:           { name: "Role-Based Form",             category: "UI/Navigation", rates: { vs: null, s: 1, m: 2, c: 3, vc: 4 } }
+mobile-phone-app-form:     { name: "Mobile Phone App Form",       category: "UI/Navigation", rates: { vs: null, s: 1, m: 2, c: 3, vc: 4 } }
+
+# =============================================================================
+# Office / Integration Setup (5 factors, IDs 79-83)
+# =============================================================================
+outlook-client-setup:      { name: "Outlook Client Setup",        category: "Office Integration Setup", rates: { vs: null, s: null, m: 16, c: null, vc: null } }
+offline-client-config:     { name: "Offline Client Configuration", category: "Office Integration Setup", rates: { vs: null, s: null, m: 16, c: null, vc: null } }
+sharepoint-integration:    { name: "SharePoint Integration Configuration", category: "Office Integration Setup", rates: { vs: 1, s: 1, m: 1, c: 2, vc: 4 } }
+activity-feeds-config:     { name: "Activity Feeds Configuration", category: "Office Integration Setup", rates: { vs: 1, s: 2, m: 4, c: 8, vc: 12 } }
+bing-maps-integration:     { name: "Bing Maps Integration Configuration", category: "Office Integration Setup", rates: { vs: null, s: 1, m: 2, c: 3, vc: 4 } }
+
+# =============================================================================
+# Security (5 factors, IDs 84-88)
+# =============================================================================
+security-role-base-config: { name: "Security Role Base Config",   category: "Security", rates: { vs: 12, s: 24, m: 36, c: 48, vc: 60 } }
+business-unit-hierarchy:   { name: "Business Unit Hierarchy",     category: "Security", rates: { vs: null, s: 1, m: 3, c: 5, vc: 8 } }
+field-level-security:      { name: "Field Level Security",        category: "Security", rates: { vs: null, s: 1, m: 2, c: 4, vc: 6 } }
+user-setup:                { name: "User Setup",                  category: "Security", rates: { vs: null, s: 1, m: 3, c: 5, vc: 8 } }
+access-teams:              { name: "Access Teams",                category: "Security", rates: { vs: 0.5, s: 0.5, m: 0.5, c: 0.5, vc: 0.5 } }
+
+# =============================================================================
+# Process / Workflow / Misc (7 factors, IDs 89-95)
+# =============================================================================
+workflow:                  { name: "Workflow",                    category: "Process Workflow Misc", rates: { vs: 0.5, s: 1, m: 4, c: 8, vc: 24 } }
+action:                    { name: "Action",                      category: "Process Workflow Misc", rates: { vs: 1, s: 2, m: 4, c: 8, vc: 20 } }
+business-process-flow:     { name: "Business Process Flow",       category: "Process Workflow Misc", rates: { vs: 1, s: 2, m: 4, c: 6, vc: 10 } }
+business-rule:             { name: "Business Rule",               category: "Process Workflow Misc", rates: { vs: 0.3, s: 1, m: 1, c: 2, vc: 4 } }
+dialogs:                   { name: "Dialogs",                     category: "Process Workflow Misc", rates: { vs: null, s: 1, m: 1, c: 2, vc: 3 } }
+duplicate-detection:       { name: "Duplicate Detection",         category: "Process Workflow Misc", rates: { vs: null, s: 1, m: 3, c: 5, vc: 8 } }
+auditing:                  { name: "Auditing",                    category: "Process Workflow Misc", rates: { vs: 1, s: 2, m: 4, c: 6, vc: 8 } }
+
+# =============================================================================
+# Reintroduced from R23 reference (8 factors, IDs 96-103) -- per ADR-0009
+# VS column undefined for all 8 (sourced from a 4-level reference; VS rates pending another tool source)
+# =============================================================================
+azure-function-build-ut:   { name: "Azure Function Build & UT",       category: "Integration & Data Migration", rates: { vs: null, s: 2,  m: 5,  c: 8,  vc: 12 } }
+integration-generic:       { name: "Integration (generic)",            category: "Integration & Data Migration", rates: { vs: null, s: 3,  m: 6,  c: 10, vc: 15 } }
+crm-master-data-prep:      { name: "CRM Master Data Preparation",      category: "Integration & Data Migration", rates: { vs: null, s: 1,  m: 3,  c: 5,  vc: 8 } }
+model-driven-app-changes:  { name: "Model Driven App Changes",         category: "Power Platform",                rates: { vs: null, s: 1,  m: 2,  c: 4,  vc: 6 } }
+pcf-control-development:   { name: "PCF Control Development",          category: "Power Platform",                rates: { vs: null, s: 3,  m: 6,  c: 10, vc: 15 } }
+excel-report:              { name: "Excel Report",                     category: "Reports & Dashboards",          rates: { vs: null, s: 1,  m: 2,  c: 3,  vc: 5 } }
+experlogix-report:         { name: "ExperLogix Report",                category: "Reports & Dashboards",          rates: { vs: null, s: 2,  m: 4,  c: 7,  vc: 10 } }
+hierarchy-security:        { name: "Hierarchy Security",               category: "Security",                      rates: { vs: null, s: 1,  m: 2,  c: 4,  vc: 6 } }

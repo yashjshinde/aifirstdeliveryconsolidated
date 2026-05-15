@@ -1,0 +1,99 @@
+# agents.yaml ?????" agent registry
+#
+# Single source of truth for which agents exist, their version, the commands they expose,
+# and (for domain agents) the docScope assignment for FDD / TDD / blueprint per ADR-0006.
+#
+# Consumed by:
+#   - tools/scaffold/New-Feature.ps1 ?????" reads docScope to lay out per-feature folder shape
+#   - tools/scaffold/New-Project.ps1 ?????" reads agents-list to scaffold per-agent subfolders under projects/{p}/
+#   - tools/sync/Publish-Agents.ps1  ?????" reads base-commands + extra-commands to render the four delivery surfaces
+#   - MCP server                     ?????" reads docScope at /fdd / /tdd / /blueprint dispatch time
+#
+# Validated against: schemas/agents-registry.v1.json (not yet authored; bk-003 follow-up)
+#
+# See: design/01-repo-structure.md ??section agents.yaml, design/03-agent-inventory.md, design/adr/0006-doc-scope-domain-vs-feature.md
+
+version: 1
+
+agents:
+  - name: d365-ce
+    version: 1.0.0
+    maturity: fat
+    base-commands: true
+    extra-commands: []
+    docScope:
+      fdd: domain
+      tdd: domain
+      blueprint: domain
+    description: "Fat agent: model-driven CE + Canvas + Power Pages + PCF + all Power Automate + plugins/JS/BPF/workflows/BPM"
+
+  - name: d365-fo
+    version: 1.0.0
+    maturity: autonomous
+    base-commands: true
+    extra-commands: [lcs-deploy, dmf-package]
+    docScope:
+      fdd: feature
+      tdd: feature
+      blueprint: feature
+    description: "Dynamics 365 Finance & Operations ?????" X++, AOT, DMF, batch, ER, F&O-native SSRS; feature-scoped FastTrack pattern"
+
+  - name: integration
+    version: 1.0.0
+    maturity: merged
+    base-commands: true
+    extra-commands: []
+    docScope:
+      fdd: domain
+      tdd: domain
+      blueprint: domain
+    description: "Merged event-driven + batch + data-migration: Azure Functions, Logic Apps, Service Bus, APIM, Event Grid, ADF, SFTP, SQL staging, bulk Dataverse"
+
+  - name: reporting
+    version: 1.0.0
+    maturity: standard
+    base-commands: true
+    extra-commands: []
+    docScope:
+      fdd: domain
+      tdd: domain
+      blueprint: domain
+    description: "CE SSRS + Power BI (CE data and BYOD-exposed F&O data). F&O native SSRS stays in d365-fo agent"
+
+  - name: solution-estimate
+    version: 1.0.0
+    maturity: aggregator
+    base-commands: false
+    extra-commands: [estimate]
+    docScope: {}   # aggregator outputs are project-level, not per-feature
+    description: "Aggregator: 103-factor catalogue, 8-value Fitment, 7 phases (x2.76 total), brownfield multipliers, confidence bands, proposed-factors gate"
+
+  - name: solution-architect
+    version: 1.0.0
+    maturity: aggregator
+    base-commands: false
+    extra-commands: [solution-blueprint, solution-review, solution-prototype]
+    docScope: {}
+    description: "Aggregator: unified architecture (blueprint), cross-agent gap review, clickable HTML solution prototype across all agents"
+
+  - name: brownfield
+    version: 1.0.0
+    maturity: standalone
+    base-commands: false
+    extra-commands: [prepare, scan, document, fdd, tdd, blueprint, generate, index, handoff]
+    docScope: {}   # per-artefact, organised under _brownfield/docs-generated/
+    description: "Standalone reverse-engineering agent: auto-mode self-healing loop, 9 patterns + ~185 bindings, ~140+ artifact taxonomy coverage"
+
+  - name: alm
+    version: 1.0.0
+    maturity: workflow
+    base-commands: false
+    extra-commands: [push, pull, export, import, status, cleanup]
+    docScope: {}
+    description: "Workflow-level ALM operations over ADO and JIRA. Bidirectional md-ALM rich-text converters. 6 action-first verbs."
+
+# Notes:
+# - base-commands: true means the agent gets the base 17 commands (spec, review, split, impact, fdd, test-plan,
+#   plan, clarify, tdd, blueprint, task, validate, implement, document, alm-extract, next, status).
+# - base-commands: false means the agent declares its own commands via extra-commands only (aggregators + alm + brownfield).
+# - docScope: {} means the agent doesn't author the standard FDD/TDD/blueprint per-feature/-domain (aggregators + brownfield + alm).

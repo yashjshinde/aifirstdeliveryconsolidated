@@ -1,0 +1,33 @@
+# phase-multipliers.yaml -- 7 phase multipliers applied to Org Build & UT Hrs.
+# Per ADR-0009. Sum: 1.76. Total Project Hrs = Build x 2.76.
+# Per-project override: projects/{p}/_aggregator/estimation/phase-multipliers-override.yaml
+
+version: 1
+
+phases:
+  - name: "Plan"
+    multiplier: 0.07
+    description: "Initial planning, stakeholder alignment, rough scoping."
+  - name: "Analyze"
+    multiplier: 0.21
+    description: "Requirement analysis, business-process discovery, gap analysis. Substantial; reflects real-world D365 delivery."
+  - name: "Design"
+    multiplier: 0.38
+    description: "Functional design (FDD), technical design (TDD), blueprint. Largest single phase; reflects D365/Power Platform complexity."
+  - name: "Test Prep"
+    multiplier: 0.25
+    description: "Test plan authoring, test data preparation, test case design."
+  - name: "Test Execution"
+    multiplier: 0.35
+    description: "Running the test suite (functional, negative, security, multilingual where applicable)."
+  - name: "Test/Dev Fix"
+    multiplier: 0.35
+    description: "Defect resolution, regression cycles, retest."
+  - name: "Deployment"
+    multiplier: 0.15
+    description: "Cutover, deployment scripts, go-live support."
+
+# Total multiplier (Plan+Analyze+Design+TestPrep+TestExe+TestFix+Deploy): 1.76
+# Total Project Hrs = Org Build & UT Hrs x (1 + 1.76) = Build x 2.76
+total-multiplier: 1.76
+total-project-multiplier: 2.76

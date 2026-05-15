@@ -1,0 +1,81 @@
+# module-detection.yaml -- module classification rules used by /estimate to set L2 (Module).
+# Per ADR-0009. SHARED with the brownfield agent (Phase 7) so both agents see the same
+# classification for the same artefact. Per-project override at
+# projects/{p}/_aggregator/estimation/module-detection-override.yaml.
+
+version: 1
+
+modules:
+  sales:
+    display-name: "Sales"
+    detected-when:
+      - "requirement.title contains [lead, opportunity, quote, sales order, invoice, contact, account, product, price list, sales territory, sales literature, goals]"
+      - "requirement.body.keywords intersects [lead-mgmt, opportunity-mgmt, quote-mgmt, order-mgmt, pipeline]"
+      - "source.path starts-with projects/{p}/d365-ce/features/sales-"
+    factor-bias: [account-management, contact-management, lead-management, opportunity-management, quote-management, order-management, invoice-management, product-catalog, sales-territories, sales-literature, sales-custom-entities, sales-custom-relationships, goals-and-goal-metrics, competitors]
+
+  service:
+    display-name: "Service"
+    detected-when:
+      - "requirement.title contains [case, contract, queue, sla, knowledge, kb article, subject tree, facility, equipment, service]"
+      - "requirement.body.keywords intersects [case-mgmt, customer-service, knowledge-mgmt, routing, sla-mgmt]"
+    factor-bias: [case-management, contract-management, queue-management, facility-equipment, services-setup, sites-setup, service-custom-entities, service-custom-relationships, knowledge-base, subject-tree]
+
+  marketing:
+    display-name: "Marketing"
+    detected-when:
+      - "requirement.title contains [campaign, marketing list, quick campaign, customer journey]"
+      - "entity.name starts-with [msdynmkt_, list]"
+    factor-bias: [campaign, marketing-custom-entities, marketing-custom-relationships, quick-campaigns, marketing-lists]
+
+  field-service:
+    display-name: "Field Service"
+    detected-when:
+      - "requirement.title contains [work order, resource scheduling, customer asset, field service, dispatch]"
+      - "entity.name starts-with msdyn_workorder"
+
+  customer-service:
+    display-name: "Customer Service Hub"
+    detected-when:
+      - "requirement.title contains [routing rule, entitlement, productivity pane, macro]"
+      - "entity.name in [sla, queue, routingrule, entitlement, knowledgearticle, msdyn_macro]"
+
+  integration:
+    display-name: "Integration"
+    detected-when:
+      - "requirement.fitment == Integration"
+      - "source.path starts-with projects/{p}/integration/"
+      - "requirement.title contains [azure function, logic app, service bus, apim, event grid, adf, sftp, etl, data migration]"
+    factor-bias: [azure-function-build-ut, integration-generic, data-migration-ssis-kingsway, data-migration-adf, simple-etl-package-cut]
+
+  reporting:
+    display-name: "Reporting"
+    detected-when:
+      - "source.path starts-with projects/{p}/reporting/"
+      - "requirement.title contains [report, dashboard, power bi, ssrs, dataflow, dataset]"
+    factor-bias: [new-crm-ssrs-pbi-report-cut, new-crm-ssrs-report, new-crm-report-wizard, modify-existing-crm-report, dashboard-config, excel-report, experlogix-report]
+
+  retail:
+    display-name: "Retail"
+    detected-when:
+      - "fo.module.retail.present == true"
+
+  migration:
+    display-name: "Migration"
+    detected-when:
+      - "requirement.title contains [data migration, master data, reference data, cutover, reconciliation]"
+    factor-bias: [crm-master-data-prep, data-migration-adf, data-migration-ssis-kingsway]
+
+  core:
+    display-name: "Core"
+    detected-when:
+      - "requirement.fitment in [Security, Non-Functional]"
+      - "requirement.title contains [security role, business unit, audit, multilingual, site map, ribbon, command bar]"
+    factor-bias: [security-role-base-config, business-unit-hierarchy, field-level-security, user-setup, access-teams, hierarchy-security, site-map, multi-currency, auditing, ribbon-command-bar]
+
+# Default when no module rule matches:
+default-module: "core"
+
+# Conflict resolution: if multiple modules match a requirement, pick the one whose
+# detected-when expression matched MOST keywords. Ties resolved by alphabetical L2 name
+# and a Typed Gap of category AMBIGUOUS-MODULE is logged in Open Questions.

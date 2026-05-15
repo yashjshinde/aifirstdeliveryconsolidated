@@ -1,0 +1,28 @@
+{
+  "_comment": "Canonical Claude plugin manifest template. Rendered by Publish-Agents.ps1 (Job 3) into agents/{AGENT_NAME}/.claude-plugin/plugin.json. Placeholders: solution-estimate, 1.0.0, Aggregator: 103-factor catalogue, 8-value Fitment, 7 phases (x2.76 total), brownfield multipliers, confidence bands, proposed-factors gate, aggregator. See ADR-0004 for the plugin-distribution rationale.",
+
+  "name": "spec-driven-dev-solution-estimate",
+  "version": "1.0.0",
+  "description": "Aggregator: 103-factor catalogue, 8-value Fitment, 7 phases (x2.76 total), brownfield multipliers, confidence bands, proposed-factors gate",
+
+  "author": {
+    "name": "Spec-Driven Development Platform"
+  },
+
+  "homepage": "",
+  "repository": "",
+  "license": "TBD",
+
+  "keywords": [
+    "spec-driven-development",
+    "d365",
+    "power-platform",
+    "solution-estimate",
+    "aggregator"
+  ],
+
+  "_meta": {
+    "generated-by": "tools/sync/Publish-Agents.ps1",
+    "do-not-edit": "Generated file. Hand-edits fail .github/workflows/check-publish-drift.yml. Author lives at tools/sync/plugin.template.json."
+  }
+}

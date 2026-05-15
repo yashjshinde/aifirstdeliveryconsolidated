@@ -1,0 +1,35 @@
+{
+  "$schemaVersion": "1",
+  "schedules": {
+    "oracle_fusion_daily": {
+      "type": "daily",
+      "atUtc": "02:00",
+      "direction": "inbound"
+    }
+  },
+  "batchSize": 500,
+  "outboundPageSize": 5000,
+  "masterCacheTtlMinutes": 240,
+  "masterBroadcastThresholdRows": 100000,
+  "maxConcurrentConnectionsDataverse": 2,
+  "dataverseRequestsPerMinuteBudget": 1100,
+  "phase2WaitStrategy": "fixedWait30s",
+  "retry": {
+    "maxAttempts": 5,
+    "backoffSec": 30,
+    "exponential": true,
+    "jitter": true
+  },
+  "createMissingLookupsDefault": false,
+  "partialLoadAllowed": true,
+  "failureThresholdPct": 5,
+  "notification": {
+    "enabled": false,
+    "onFailure": [],
+    "onPartial": [],
+    "onSlaBreach": [],
+    "slaMinutes": 60,
+    "to": [],
+    "teamsWebhookSecretName": "kv-teams-webhook"
+  }
+}

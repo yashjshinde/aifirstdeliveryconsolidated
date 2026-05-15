@@ -1,0 +1,86 @@
+{
+  "name": "pl_audit_aggregator",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Aggregates per-pipeline checkpoint JSONs under /audit/checkpoints/<runId>/ into a single row appended to /audit/run_history.parquet. Invoked by orchestrators at completion (Success or Failed).",
+    "annotations": ["opex-integration", "v1", "ops"],
+    "parameters": {
+      "runId":       { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "entityKey":   { "type": "String", "defaultValue": "" },
+      "waveRunId":   { "type": "String", "defaultValue": "" },
+      "direction":   { "type": "String", "defaultValue": "inbound" },
+      "finalStatus": { "type": "String", "defaultValue": "Success" }
+    },
+    "activities": [
+      {
+        "name": "GetMetadata_CheckpointDir",
+        "type": "GetMetadata",
+        "policy": { "timeout": "0.00:02:00", "retry": 1, "retryIntervalInSeconds": 5 },
+        "typeProperties": {
+          "dataset": {
+            "referenceName": "ds_adls_json",
+            "type": "DatasetReference",
+            "parameters": {
+              "folder":   "@concat('audit/checkpoints/', pipeline().parameters.runId)",
+              "fileName": "*.json"
+            }
+          },
+          "fieldList": ["childItems"]
+        }
+      },
+      {
+        "name": "Copy_AggregateToRunHistory",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "GetMetadata_CheckpointDir", "dependencyConditions": ["Succeeded", "Failed"] }],
+        "policy": { "timeout": "0.00:10:00", "retry": 2, "retryIntervalInSeconds": 30 },
+        "description": "Reads all checkpoint JSONs from this run and appends them as rows to /audit/run_history.parquet. Append mode means the file grows over time; ADLS lifecycle management handles retention.",
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "storeSettings": {
+              "type": "AzureBlobFSReadSettings",
+              "recursive": false,
+              "wildcardFolderPath": "@concat('audit/checkpoints/', pipeline().parameters.runId)",
+              "wildcardFileName":  "*.json"
+            },
+            "formatSettings": { "type": "JsonReadSettings" },
+            "additionalColumns": [
+              { "name": "_aggregated_at", "value": "@utcNow()" },
+              { "name": "_parent_runId",  "value": "@pipeline().parameters.runId" },
+              { "name": "_waveRunId",     "value": "@pipeline().parameters.waveRunId" },
+              { "name": "_entityKey",     "value": "@pipeline().parameters.entityKey" },
+              { "name": "_direction",     "value": "@pipeline().parameters.direction" },
+              { "name": "_finalStatus",   "value": "@pipeline().parameters.finalStatus" }
+            ]
+          },
+          "sink": {
+            "type": "ParquetSink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings",
+              "copyBehavior": "MergeFiles"
+            },
+            "formatSettings": { "type": "ParquetWriteSettings" }
+          },
+          "enableStaging": false
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json",
+          "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('audit/checkpoints/', pipeline().parameters.runId)",
+            "fileName": "*.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_parquet",
+          "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('audit/run_history/runDate=', formatDateTime(utcNow(), 'yyyy-MM-dd'))",
+            "fileName": "@concat(pipeline().parameters.runId, '.parquet')"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/operations" }
+  }
+}

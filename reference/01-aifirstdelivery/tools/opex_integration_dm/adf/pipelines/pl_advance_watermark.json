@@ -1,0 +1,102 @@
+{
+  "name": "pl_advance_watermark",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Outbound commit step — writes /audit/watermarks/<entityKey>.json only after delivery succeeded. Run last in the outbound chain.",
+    "annotations": ["opex-integration", "v1", "outbound"],
+    "parameters": {
+      "entityKey":     { "type": "String" },
+      "runId":         { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":    { "type": "String" },
+      "lastSyncedAt":  { "type": "String" },
+      "rowsExtracted": { "type": "String", "defaultValue": "0" }
+    },
+    "variables": {
+      "watermarkJson": { "type": "String" }
+    },
+    "activities": [
+      {
+        "name": "SetVar_WatermarkJson",
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "watermarkJson",
+          "value": "@concat('{\"lastSyncedAt\":\"', pipeline().parameters.lastSyncedAt, '\",\"runId\":\"', pipeline().parameters.runId, '\",\"completedAt\":\"', formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:ssZ'), '\",\"rowsExtracted\":', pipeline().parameters.rowsExtracted, '}')"
+        }
+      },
+      {
+        "name": "Copy_NewWatermark",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "SetVar_WatermarkJson", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "lastSyncedAt",  "value": "@pipeline().parameters.lastSyncedAt" },
+              { "name": "runId",         "value": "@pipeline().parameters.runId" },
+              { "name": "completedAt",   "value": "@utcNow()" },
+              { "name": "rowsExtracted", "value": "@pipeline().parameters.rowsExtracted" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "singleObject" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json",
+          "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/watermarks",
+            "fileName": "@concat(pipeline().parameters.entityKey, '.json')"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json",
+          "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/watermarks",
+            "fileName": "@concat(pipeline().parameters.entityKey, '.json')"
+          }
+        }]
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "Copy_NewWatermark", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName", "value": "pl_advance_watermark" },
+              { "name": "entityKey",    "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",        "value": "@pipeline().parameters.runId" },
+              { "name": "status",       "value": "Success" },
+              { "name": "completedAt",  "value": "@utcNow()" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_advance_watermark.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_advance_watermark.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/outbound" }
+  }
+}

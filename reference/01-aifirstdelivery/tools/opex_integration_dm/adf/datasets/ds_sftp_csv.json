@@ -1,0 +1,34 @@
+{
+  "name": "ds_sftp_csv",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "type": "DelimitedText",
+    "description": "CSV files on SFTP. Used by pl_extract_file (inbound source) and pl_deliver_sftp (outbound sink).",
+    "annotations": ["opex-integration", "v1"],
+    "linkedServiceName": {
+      "referenceName": "ls_sftp_fusion",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "folderPath":    { "type": "String" },
+      "fileName":      { "type": "String", "defaultValue": "*.csv" },
+      "delimiter":     { "type": "String", "defaultValue": "," },
+      "encoding":      { "type": "String", "defaultValue": "UTF-8" },
+      "firstRowAsHeader": { "type": "Bool", "defaultValue": true }
+    },
+    "typeProperties": {
+      "location": {
+        "type": "SftpLocation",
+        "folderPath": "@dataset().folderPath",
+        "fileName":   "@dataset().fileName"
+      },
+      "columnDelimiter":  "@dataset().delimiter",
+      "rowDelimiter":     "\n",
+      "encodingName":     "@dataset().encoding",
+      "firstRowAsHeader": "@dataset().firstRowAsHeader",
+      "quoteChar":        "\"",
+      "escapeChar":       "\""
+    },
+    "schema": []
+  }
+}

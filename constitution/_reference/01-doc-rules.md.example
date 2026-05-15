@@ -1,0 +1,37 @@
+<!--
+Scaffolding starter for agents/{agent}/constitution/01-doc-rules.md.
+Describes (in this agent's own words) the universal doc rules that MCP doc_lint enforces.
+The rule is the code; this file is human guidance.
+-->
+---
+agent: {agent-slug}
+version: 1.0.0
+last-reviewed: YYYY-MM-DD
+owner: platform
+---
+
+# Documentation Rules — {Agent Name}
+
+This agent generates docs that conform to the platform-wide rules. The rules are enforced by MCP `doc_lint` (code); this file describes them in {agent-slug}'s context.
+
+## Required for every generated document
+
+1. **YAML frontmatter** with keys: `feature-id`, `agent`, `phase`, `schema-version`, `gates-passed`
+2. **Auto-generated TOC** at the top of every multi-section doc
+3. **AI Summary** section at the top of the doc explaining why the AI created it
+4. **Numbered sections** for cross-reference: `FR-NN` for requirements, `TS-NN` for technical specs, `TC-NN` for test cases
+5. **Mermaid only** for diagrams — no PNG, no draw.io, no proprietary formats
+6. **Traceability matrix** at the bottom of spec, plan, and TDD docs
+7. **No inline ALM IDs** — section IDs only; ALM mapping lives in `work-items.yaml`
+
+## Agent-specific rendering rules
+
+If this agent has rules unique to its platform (e.g., a particular section sequence, mandatory marker conventions, multi-file pack assembly), document them here.
+
+## Quality self-check appendix
+
+Per ADR-0001, FDD, TDD, blueprint, and test-plan docs include a "Quality self-check" appendix at the bottom showing the findings from the inline check against `templates/checklists/{doc}-review.checklist.md`. `doc_lint` enforces the appendix's presence and fails the write on BLOCKER findings.
+
+## Feature-id tagging (domain-scoped agents only)
+
+If this agent has `docScope.{fdd|tdd|blueprint} = domain` in `agents.yaml`, every section block in the domain doc carries an `<!-- feature-id: {feature-slug} -->` HTML comment at the top, and every table row has a `feature-id` column. See `design/adr/0006-doc-scope-domain-vs-feature.md`.

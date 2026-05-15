@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Write(output/**)",
+      "Write(docs-generated/**)",
+      "Write(specs/**)",
+      "Write(plans/**)",
+      "Write(tasks/**)"
+    ]
+  }
+}

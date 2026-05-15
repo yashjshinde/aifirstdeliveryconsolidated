@@ -1,0 +1,30 @@
+{
+  "name": "ls_adls",
+  "type": "Microsoft.DataFactory/factories/linkedServices",
+  "properties": {
+    "type": "AzureBlobFS",
+    "description": "ADLS Gen2 — the integration container holds /raw, /staged, /final, /staged-out, /final-out, /masters, /errors, /audit, /config",
+    "annotations": ["opex-integration", "v1"],
+    "typeProperties": {
+      "url": "@{linkedService().url}",
+      "accountKey": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "@{linkedService().accountKeySecretName}"
+      }
+    },
+    "parameters": {
+      "url": {
+        "type": "String",
+        "defaultValue": "https://stopexdev.dfs.core.windows.net"
+      },
+      "accountKeySecretName": {
+        "type": "String",
+        "defaultValue": "kv-adls-accountkey"
+      }
+    }
+  }
+}

@@ -1,0 +1,117 @@
+work-items:
+  - id: "f559-contact-management-contact-360-view-PBI-001"
+    level: 3
+    alm-type: Product Backlog Item
+    title: "As a Service Representative, I want to handle AC-1 for Contact Management- Contact 360 View"
+    source: generated
+    parent: "559"
+    alm-id: null
+    story-points: 5
+    acceptance-criteria: |
+      - Given a Contact exists in D365, When viewed in D365, Then the Contact form should show fields and the Associated records in respective grids/tabs as per the expected layout.
+      - Given the user attempts an unauthorised edit, When the user saves, Then the save is blocked with a localized validation message.
+    fr-refs:
+      - FR-001
+      - FR-002
+      - FR-003
+      - FR-004
+      - FR-005
+      - FR-006
+    status: TODO
+  - id: "f559-contact-management-contact-360-view-T-001"
+    level: 4
+    alm-type: Task
+    title: "Clone `Contact — Main` form and configure 360 layout"
+    source: generated-parent
+    parent: "f559-contact-management-contact-360-view-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: UX
+  - id: "f559-contact-management-contact-360-view-T-002"
+    level: 4
+    alm-type: Task
+    title: "Add sub-grids: Accounts, Cases, Work Orders"
+    source: generated-parent
+    parent: "f559-contact-management-contact-360-view-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: UX
+  - id: "f559-contact-management-contact-360-view-T-003"
+    level: 4
+    alm-type: Task
+    title: "Configure multi-site sub-grid (related Functional Locations) per L2-542 contract"
+    source: generated-parent
+    parent: "f559-contact-management-contact-360-view-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: UX
+  - id: "f559-contact-management-contact-360-view-T-004"
+    level: 4
+    alm-type: Task
+    title: "Localization — register per-culture RESX / Web Resources for all user-facing strings"
+    source: generated-parent
+    parent: "f559-contact-management-contact-360-view-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Developer
+    type: Dev
+  - id: "f559-contact-management-contact-360-view-T-005"
+    level: 4
+    alm-type: Task
+    title: "Translation export from Dev → CI commit (per Constitution §07 Translation CI)"
+    source: generated-parent
+    parent: "f559-contact-management-contact-360-view-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Developer
+    type: DevOps
+  - id: "f559-contact-management-contact-360-view-T-006"
+    level: 4
+    alm-type: Task
+    title: "System / UAT test execution per `docs-generated/{f}/test-cases/`"
+    source: generated-parent
+    parent: "f559-contact-management-contact-360-view-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: QA
+    type: Testing
+

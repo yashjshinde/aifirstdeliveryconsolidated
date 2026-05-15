@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spec-driven-dev/schemas/workflow-state.v1.json",
+  "title": ".workflow.json — per-feature workflow state",
+  "description": "Schema for projects/{p}/{agent}/features/{feature}/.workflow.json. Tracks the current state of one feature against the workflow DAG declared in workflow.yaml. See design/04-workflow-gates.md.",
+  "type": "object",
+  "required": ["schemaVersion", "project", "agent", "feature", "phase", "currentStates", "gates"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "project": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "agent": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "feature": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "phase": {
+      "enum": ["DEFINE", "DESIGN", "BUILD"],
+      "description": "Current workflow phase. Derived from currentStates and workflow.yaml phase membership."
+    },
+    "currentStates": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "SPEC_DRAFT", "SPEC_REVIEWED", "SPEC_APPROVED", "SPEC_SPLIT",
+          "PLAN_DRAFT", "PLAN_CLARIFIED",
+          "TDD_DRAFT", "BLUEPRINT_DRAFT", "FDD_DRAFT", "TEST_PLAN_DRAFT",
+          "TASK_DRAFT", "TASK_VALIDATED",
+          "IMPLEMENTING", "IMPLEMENTED", "DOCUMENTED"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Active states. Multiple states can be active simultaneously when parallel-after rules apply."
+    },
+    "gates": {
+      "type": "object",
+      "patternProperties": {
+        "^(SPEC_APPROVED|PLAN_CLARIFIED|TASK_VALIDATED|SPEC_REVIEWED|SPEC_SPLIT)$": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": { "enum": ["PENDING", "APPROVED", "REJECTED", "FORCE_SKIPPED"] },
+            "ts": { "type": "string", "format": "date-time" },
+            "by": { "type": "string" },
+            "notes": { "type": "string" }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Cross-agent dependencies declared by /plan. /clarify blocks until all are READY (or --accept-pending-dep).",
+      "items": {
+        "type": "object",
+        "required": ["agent", "feature", "artifact", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "agent": { "type": "string" },
+          "feature": { "type": "string" },
+          "artifact": { "enum": ["spec", "plan", "fdd", "tdd", "blueprint", "test-plan", "handoff", "alm-extract"] },
+          "status": { "enum": ["PENDING", "READY", "FAILED", "WAIVED"] }
+        }
+      }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["command", "ts", "result"],
+        "additionalProperties": false,
+        "properties": {
+          "command": { "type": "string" },
+          "ts": { "type": "string", "format": "date-time" },
+          "result": { "enum": ["ok", "failed", "force-skipped"] },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

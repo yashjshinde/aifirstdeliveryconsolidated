@@ -1,0 +1,82 @@
+{
+  "name": "pl_transform_inbound",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Wraps the entity-specific generated Data Flow (df_transform_<entityKey>_inbound). The Data Flow itself is produced by tools/dataflow-codegen from the entity config.",
+    "annotations": ["opex-integration", "v1", "inbound"],
+    "parameters": {
+      "entityKey":         { "type": "String" },
+      "runId":             { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":        { "type": "String" },
+      "dataflowName":      { "type": "String", "defaultValue": "" }
+    },
+    "variables": {
+      "resolvedDfName": { "type": "String" },
+      "rowsIn":         { "type": "Integer", "defaultValue": 0 },
+      "rowsOut":        { "type": "Integer", "defaultValue": 0 },
+      "status":         { "type": "String",  "defaultValue": "Success" }
+    },
+    "activities": [
+      {
+        "name": "SetVar_ResolveDataflowName",
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "resolvedDfName",
+          "value": "@if(empty(pipeline().parameters.dataflowName), concat('df_transform_', pipeline().parameters.entityKey, '_inbound'), pipeline().parameters.dataflowName)"
+        }
+      },
+      {
+        "name": "DataFlow_TransformInbound",
+        "type": "ExecuteDataFlow",
+        "dependsOn": [{ "activity": "SetVar_ResolveDataflowName", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.02:00:00", "retry": 1, "retryIntervalInSeconds": 60 },
+        "typeProperties": {
+          "dataflow": {
+            "referenceName": "@variables('resolvedDfName')",
+            "type": "DataFlowReference"
+          },
+          "compute": { "coreCount": 16, "computeType": "MemoryOptimized" },
+          "traceLevel": "Fine"
+        }
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "DataFlow_TransformInbound", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName", "value": "pl_transform_inbound" },
+              { "name": "entityKey",    "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",        "value": "@pipeline().parameters.runId" },
+              { "name": "status",       "value": "Success" },
+              { "name": "completedAt",  "value": "@utcNow()" },
+              { "name": "dataflowUsed", "value": "@variables('resolvedDfName')" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_transform_inbound.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_transform_inbound.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/inbound" }
+  }
+}

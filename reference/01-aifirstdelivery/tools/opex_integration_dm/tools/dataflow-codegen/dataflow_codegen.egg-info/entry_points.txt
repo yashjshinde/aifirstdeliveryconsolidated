@@ -1,0 +1,2 @@
+[console_scripts]
+dataflow-codegen = dataflow_codegen.__main__:main

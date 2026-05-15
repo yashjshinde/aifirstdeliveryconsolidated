@@ -1,0 +1,51 @@
+<!--
+Scaffolding starter for agents/{agent}/constitution/00-charter.md.
+Copied by tools/scaffold/New-Agent.ps1 when bootstrapping a new agent.
+NOT read at runtime — see design/adr/0010-templates-agent-owned.md.
+
+Edit this file when seeding a new agent. Cross-agent consistency is enforced
+by MCP doc_lint code, not by this template's content.
+-->
+---
+agent: {agent-slug}
+version: 1.0.0
+last-reviewed: YYYY-MM-DD
+owner: platform
+---
+
+# {Agent Name} — Charter
+
+## Purpose
+
+One-sentence description of what this agent does and why it exists.
+
+## In scope
+
+What the agent owns. List the artifact types and capabilities. Be specific — naming forms, plugins, entities, etc. as appropriate to the platform.
+
+- Artifact type 1
+- Artifact type 2
+- ...
+
+## Out of scope
+
+What this agent deliberately does NOT do. Name the agent that does instead.
+
+- Capability X — handled by `{other-agent}` agent
+- Capability Y — not in v1; future consideration
+
+## Boundaries with adjacent agents
+
+| Boundary case | Owned by |
+|---|---|
+| ... | ... |
+
+## Design references
+
+- Agent-specific design doc: `design/agents/{agent-slug}.md`
+- Cross-cutting design docs: `design/00-overview.md` for overall context
+- ADRs governing this agent: list ADR IDs
+
+## Conventions specific to this platform
+
+If the platform has special naming, prefix, or grammar conventions (e.g., F&O Object-ID prefixes), document them here. If not, this section can be omitted.

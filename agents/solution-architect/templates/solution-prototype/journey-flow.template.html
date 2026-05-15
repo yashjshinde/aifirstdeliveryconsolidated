@@ -1,0 +1,65 @@
+<!--
+journey-flow.template.html - multi-screen cross-module journey.
+Rendered into projects/{p}/_aggregator/architecture/solution-prototype/journeys/{slug}.html.
+Placeholders:
+  {{JOURNEY_NAME}}, {{JOURNEY_SLUG}}, {{JOURNEY_DESCRIPTION}}, {{PROJECT_NAME}}
+  {{STEPS_BAR}}     - stepper component HTML (active step highlighted)
+  {{STEP_CONTENT}}  - HTML for the current step's content (form preview, entity grid, etc.)
+  {{MODULES_NAV}}, {{PERSONAS_NAV}}, {{JOURNEYS_NAV}}, {{DASHBOARDS_NAV}}
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{JOURNEY_NAME}} - {{PROJECT_NAME}}</title>
+  <link rel="stylesheet" href="../assets/d365-tokens.css" />
+  <link rel="stylesheet" href="../assets/prototype.css" />
+</head>
+<body>
+  <header class="topnav">
+    <div class="topnav-brand">D365 - {{PROJECT_NAME}}</div>
+    <div class="topnav-right">
+      <label class="persona-switcher">
+        Persona:
+        <select id="personaSwitcher"></select>
+      </label>
+      <span class="topnav-avatar">U</span>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <nav>
+      <h2 class="sidebar-section-title">Modules</h2>
+      <ul class="sidebar-list">{{MODULES_NAV}}</ul>
+      <h2 class="sidebar-section-title">Personas</h2>
+      <ul class="sidebar-list">{{PERSONAS_NAV}}</ul>
+      <h2 class="sidebar-section-title">Journeys</h2>
+      <ul class="sidebar-list" data-current="{{JOURNEY_SLUG}}">{{JOURNEYS_NAV}}</ul>
+      <h2 class="sidebar-section-title">Dashboards</h2>
+      <ul class="sidebar-list">{{DASHBOARDS_NAV}}</ul>
+    </nav>
+  </aside>
+
+  <main class="main journey-flow">
+    <div class="record-header">
+      <h1>{{JOURNEY_NAME}}</h1>
+      <p>{{JOURNEY_DESCRIPTION}}</p>
+    </div>
+
+    <nav class="journey-stepper" aria-label="Journey steps">
+      {{STEPS_BAR}}
+    </nav>
+
+    <section class="journey-step-content">
+      {{STEP_CONTENT}}
+    </section>
+
+    <nav class="journey-nav">
+      <button class="cmd-btn" id="journeyPrev" disabled>Previous</button>
+      <button class="cmd-btn primary" id="journeyNext">Next</button>
+    </nav>
+  </main>
+
+  <script src="../assets/prototype.js"></script>
+</body>
+</html>

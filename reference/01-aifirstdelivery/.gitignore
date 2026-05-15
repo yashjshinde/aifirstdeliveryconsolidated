@@ -1,0 +1,12 @@
+# Generated Copilot prompts (local only)
+.tmp/
+
+# Local MCP server config — contains PAT, never commit
+.mcp.json
+
+# Node.js
+node_modules/
+
+# Build output
+dist/
+.vs/

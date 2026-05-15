@@ -1,0 +1,117 @@
+work-items:
+  - id: "f719-activity-management-manual-creation-of-emails-and-phone-call-PBI-001"
+    level: 3
+    alm-type: Product Backlog Item
+    title: "As a D365 user (Service / Dispatcher), I want to handle AC-1 for Activity Management - Manual Creation of Emails and Phone calls"
+    source: generated
+    parent: "719"
+    alm-id: null
+    story-points: 5
+    acceptance-criteria: |
+      - Given A customer calls requesting a service, When a D365 user enters the information in D365, Then only relevant fields are available for data entry.
+      - Given the user attempts an unauthorised edit, When the user saves, Then the save is blocked with a localized validation message.
+    fr-refs:
+      - FR-001
+      - FR-002
+      - FR-003
+      - FR-004
+      - FR-005
+      - FR-006
+    status: TODO
+  - id: "f719-activity-management-manual-creation-of-emails-and-phone-call-T-001"
+    level: 4
+    alm-type: Task
+    title: "Clone `Phone Call — Main` form and configure trimmed field set per OPEX wireframe"
+    source: generated-parent
+    parent: "f719-activity-management-manual-creation-of-emails-and-phone-call-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: UX
+  - id: "f719-activity-management-manual-creation-of-emails-and-phone-call-T-002"
+    level: 4
+    alm-type: Task
+    title: "Clone `Email — Main` form and configure trimmed field set per OPEX wireframe"
+    source: generated-parent
+    parent: "f719-activity-management-manual-creation-of-emails-and-phone-call-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: UX
+  - id: "f719-activity-management-manual-creation-of-emails-and-phone-call-T-003"
+    level: 4
+    alm-type: Task
+    title: "Configure field-level validation rules (Business Rules) on Phone Call / Email forms"
+    source: generated-parent
+    parent: "f719-activity-management-manual-creation-of-emails-and-phone-call-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: Config
+  - id: "f719-activity-management-manual-creation-of-emails-and-phone-call-T-004"
+    level: 4
+    alm-type: Task
+    title: "Localization — register per-culture RESX / Web Resources for all user-facing strings"
+    source: generated-parent
+    parent: "f719-activity-management-manual-creation-of-emails-and-phone-call-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Developer
+    type: Dev
+  - id: "f719-activity-management-manual-creation-of-emails-and-phone-call-T-005"
+    level: 4
+    alm-type: Task
+    title: "Translation export from Dev → CI commit (per Constitution §07 Translation CI)"
+    source: generated-parent
+    parent: "f719-activity-management-manual-creation-of-emails-and-phone-call-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Developer
+    type: DevOps
+  - id: "f719-activity-management-manual-creation-of-emails-and-phone-call-T-006"
+    level: 4
+    alm-type: Task
+    title: "System / UAT test execution per `docs-generated/{f}/test-cases/`"
+    source: generated-parent
+    parent: "f719-activity-management-manual-creation-of-emails-and-phone-call-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: QA
+    type: Testing
+

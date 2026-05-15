@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "validate-config"
+version = "0.1.0"
+description = "CI gate validating Opex integration framework JSON configs against their schemas plus cross-file rules."
+requires-python = ">=3.10"
+readme = "README.md"
+dependencies = [
+    "jsonschema>=4.20.0",
+    "referencing>=0.30.0",
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+]
+
+[project.scripts]
+validate-config = "validate_config.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["validate_config*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

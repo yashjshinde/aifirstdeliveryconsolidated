@@ -1,0 +1,56 @@
+<!--
+Scaffolding starter for agents/{agent}/constitution/05-alm.md.
+ALM mapping for this agent's work products to the project's configured ALM tool.
+-->
+---
+agent: {agent-slug}
+version: 1.0.0
+last-reviewed: YYYY-MM-DD
+owner: platform
+---
+
+# ALM Mapping — {Agent Name}
+
+## Work product → ALM hierarchy mapping
+
+The project's hierarchy is declared in `projects/{p}/project.config.yaml alm.hierarchy`. For ADO this is typically `[Epic, Feature, "User Story", Task]`; for JIRA `[Initiative, Epic, Story, "Sub-task"]`.
+
+How this agent's outputs map to the hierarchy:
+
+| Local artefact | Maps to ALM level |
+|---|---|
+| Spec | L1 (Epic / Initiative) |
+| Plan L2 sections | L2 (Feature / Epic) |
+| Plan L3 sections | L3 (User Story / Story) |
+| Task cards | L4 (Task / Sub-task) |
+| Test cases | Test case under suite under plan |
+
+## Section ID conventions
+
+Every plan/TDD section carries a stable section ID (e.g., `FR-NN`, `TS-NN`). The ID is the durable link between markdown and ALM — `work-items.yaml` carries the markdown-section-ID ↔ ALM-ID mapping.
+
+`doc_lint` rule: **no inline ALM IDs in markdown** — section IDs only. Mapping lives in `work-items.yaml`.
+
+## Status mapping
+
+| Local state | ADO state | JIRA state |
+|---|---|---|
+| draft | New | To Do |
+| approved | Active | In Progress |
+| implemented | Resolved | Done |
+| documented | Closed | Closed |
+
+(Exact mapping should be tuned per project; this is a starter.)
+
+## Priority mapping
+
+Local priority labels map to ALM priority integers per `project.config.yaml alm.priorityMap`. Don't invent custom priorities — stick to the configured set.
+
+## /alm-extract output
+
+When `/alm-extract` runs in this agent, it produces a `handoff` (schema: `handoff.v1`) targeted at the `alm` agent with:
+- Source file references (spec, plan, TDD, task folder, test-plan folder)
+- One `extractItem` per work-item-to-be-pushed, with `alm-action` ∈ {create, update, no-change}
+- Section-ref backlinks for traceability
+
+See [design/agents/alm.md](../../design/agents/alm.md) for the full ALM-side workflow.

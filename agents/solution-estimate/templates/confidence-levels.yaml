@@ -1,0 +1,44 @@
+# confidence-levels.yaml -- 5 confidence bands per inventory row.
+# Per ADR-0009. The Confidence Level is auto-derived from the input source quality
+# at sizing time. Project-level Confidence Band (shown as header in §1 of
+# Estimation-ModuleOverallHrs.md) is the weighted average across all rows.
+
+version: 1
+
+bands:
+  - name: "Placeholder"
+    range: "+/- 40%"
+    rangePercent: 40
+    description: "Only an RFP title or one-line bullet exists. No business context, no acceptance criteria."
+    auto-from: "RFP title only"
+    weight: 0.0   # informational baseline; do not contribute meaningful confidence
+  - name: "Low"
+    range: "+/- 30%"
+    rangePercent: 30
+    description: "RFP narrative or HLR with brief context. Module assignment is guessed, complexity inferred from adjectives."
+    auto-from: "RFP narrative / brief HLR"
+    weight: 0.25
+  - name: "Medium"
+    range: "+/- 20%"
+    rangePercent: 20
+    description: "Spec exists but with open questions or TBDs."
+    auto-from: "Spec with open Qs"
+    weight: 0.5
+  - name: "High"
+    range: "+/- 15%"
+    rangePercent: 15
+    description: "Spec is complete with no open questions; acceptance criteria are detailed."
+    auto-from: "Spec, no open Qs"
+    weight: 0.75
+  - name: "Fully Detailed"
+    range: "+/- 10%"
+    rangePercent: 10
+    description: "Plan exists with full acceptance criteria, technical approach, and L4 work items broken down."
+    auto-from: "Plan with full ACs"
+    weight: 1.0
+
+# Derivation of project-level Confidence Band:
+#   weighted-range = sum( row.rangePercent * row.relative-weight ) / total-rows
+# where relative-weight reflects how much the row contributes to the project's hours.
+# The /estimate command body computes this per the formula in
+# constitution/01-template-alignment.md § Output 3 / §1 (Confidence Band header).

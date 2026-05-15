@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "opex-integration/alias-file.schema.json",
+  "title": "Externalized variant→canonical map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["refTable", "refField", "aliases"],
+  "properties": {
+    "$schemaVersion": { "type": "string", "enum": ["1"] },
+    "refTable":  { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$" },
+    "refField":  { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$" },
+    "normalize": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(trim|collapseWhitespace|toLowerCase|toUpperCase|stripPunctuation|stripDiacritics|removeRegex:.+)$"
+      }
+    },
+    "aliases": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "minProperties": 1
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "name": "pl_master_prefetch",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Refreshes /masters/<refTable>.parquet for every distinct cacheKey referenced by the entity's lookup transforms.",
+    "annotations": ["opex-integration", "v1", "both-directions"],
+    "parameters": {
+      "entityKey":     { "type": "String" },
+      "runId":         { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":    { "type": "String" },
+      "cacheKeys":     { "type": "Array",  "defaultValue": [] },
+      "forceRefresh":  { "type": "Bool",   "defaultValue": false },
+      "ttlMinutes":    { "type": "Int",    "defaultValue": 240 }
+    },
+    "activities": [
+      {
+        "name": "GetMetadata_CacheState",
+        "type": "GetMetadata",
+        "policy": { "timeout": "0.00:05:00", "retry": 2, "retryIntervalInSeconds": 15 },
+        "typeProperties": {
+          "dataset": {
+            "referenceName": "ds_adls_json",
+            "type": "DatasetReference",
+            "parameters": {
+              "folder":   "audit",
+              "fileName": "master_cache_state.json"
+            }
+          },
+          "fieldList": ["exists", "lastModified"]
+        }
+      },
+      {
+        "name": "ForEach_CacheKey",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "GetMetadata_CacheState", "dependencyConditions": ["Succeeded", "Failed"] }],
+        "userProperties": [],
+        "typeProperties": {
+          "items": { "value": "@pipeline().parameters.cacheKeys", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 6,
+          "activities": [
+            {
+              "name": "Copy_MasterTable",
+              "type": "Copy",
+              "policy": { "timeout": "0.00:30:00", "retry": 5, "retryIntervalInSeconds": 30 },
+              "typeProperties": {
+                "source": {
+                  "type": "CommonDataServiceForAppsSource",
+                  "additionalColumns": [
+                    { "name": "_prefetched_at", "value": "@utcNow()" }
+                  ]
+                },
+                "sink": {
+                  "type": "ParquetSink",
+                  "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+                  "formatSettings": { "type": "ParquetWriteSettings" }
+                },
+                "enableStaging": false
+              },
+              "inputs": [
+                {
+                  "referenceName": "ds_dataverse",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "entityName": "@item().referenceTable"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "referenceName": "ds_adls_parquet",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "folder":   "masters",
+                    "fileName": "@concat(item().referenceTable, '.parquet')"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "ForEach_CacheKey", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName", "value": "pl_master_prefetch" },
+              { "name": "entityKey",    "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",        "value": "@pipeline().parameters.runId" },
+              { "name": "status",       "value": "Success" },
+              { "name": "completedAt",  "value": "@utcNow()" },
+              { "name": "cachesRefreshed", "value": "@length(pipeline().parameters.cacheKeys)" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_master_prefetch.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_master_prefetch.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/shared" }
+  }
+}

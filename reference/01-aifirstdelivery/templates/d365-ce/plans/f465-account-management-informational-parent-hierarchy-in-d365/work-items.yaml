@@ -1,0 +1,232 @@
+work-items:
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-001"
+    level: 3
+    alm-type: Product Backlog Item
+    title: "As a Customer Manager, I want to handle AC-1 for Account Management - Informational Parent Hierarchy in D365"
+    source: generated
+    parent: "465"
+    alm-id: null
+    story-points: 5
+    acceptance-criteria: |
+      - Given multiple service accounts belong to one organization, When viewed in D365, Then hierarchy is in place on Accounts for the user to be able to add a relation between two accounts.
+      - Given the user attempts an unauthorised edit, When the user saves, Then the save is blocked with a localized validation message.
+    fr-refs:
+      - FR-001
+      - FR-002
+      - FR-003
+      - FR-004
+      - FR-005
+      - FR-006
+    status: TODO
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-001"
+    level: 4
+    alm-type: Task
+    title: "Add custom Parent Account lookup configuration on Account form"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: Config
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-002"
+    level: 4
+    alm-type: Task
+    title: "Create custom security role `opex_OperationsAdmin`"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: Security
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-003"
+    level: 4
+    alm-type: Task
+    title: "Configure column-level audit for Parent Account"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: Config
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-004"
+    level: 4
+    alm-type: Task
+    title: "Localization — register per-culture RESX / Web Resources for all user-facing strings"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Developer
+    type: Dev
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-005"
+    level: 4
+    alm-type: Task
+    title: "Translation export from Dev → CI commit (per Constitution §07 Translation CI)"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Developer
+    type: DevOps
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-006"
+    level: 4
+    alm-type: Task
+    title: "System / UAT test execution per `docs-generated/{f}/test-cases/`"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: QA
+    type: Testing
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-002"
+    level: 3
+    alm-type: Product Backlog Item
+    title: "As a Customer Manager, I want to handle AC-2 for Account Management - Informational Parent Hierarchy in D365"
+    source: generated
+    parent: "465"
+    alm-id: null
+    story-points: 5
+    acceptance-criteria: |
+      - Given the requirement is implemented, When the user adds a parent Account, Then no parent hierarchy data is sent back to Fusion. |.
+      - Given the user attempts an unauthorised edit, When the user saves, Then the save is blocked with a localized validation message.
+    fr-refs:
+      - FR-004
+      - FR-005
+      - FR-006
+      - FR-007
+      - FR-008
+      - FR-009
+    status: TODO
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-007"
+    level: 4
+    alm-type: Task
+    title: "Add custom Parent Account lookup configuration on Account form"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Functional
+    type: Config
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-008"
+    level: 4
+    alm-type: Task
+    title: "Create custom security role `opex_OperationsAdmin`"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Functional
+    type: Security
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-009"
+    level: 4
+    alm-type: Task
+    title: "Configure column-level audit for Parent Account"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Functional
+    type: Config
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-010"
+    level: 4
+    alm-type: Task
+    title: "Localization — register per-culture RESX / Web Resources for all user-facing strings"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Developer
+    type: Dev
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-011"
+    level: 4
+    alm-type: Task
+    title: "Translation export from Dev → CI commit (per Constitution §07 Translation CI)"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Developer
+    type: DevOps
+  - id: "f465-account-management-informational-parent-hierarchy-in-d365-T-012"
+    level: 4
+    alm-type: Task
+    title: "System / UAT test execution per `docs-generated/{f}/test-cases/`"
+    source: generated-parent
+    parent: "f465-account-management-informational-parent-hierarchy-in-d365-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: QA
+    type: Testing
+

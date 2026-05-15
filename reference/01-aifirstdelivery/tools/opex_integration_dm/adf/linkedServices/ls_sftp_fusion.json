@@ -1,0 +1,30 @@
+{
+  "name": "ls_sftp_fusion",
+  "type": "Microsoft.DataFactory/factories/linkedServices",
+  "properties": {
+    "type": "Sftp",
+    "description": "Oracle Fusion SFTP endpoint. Password from Key Vault; switch to private-key auth in prod when the SFTP server supports it.",
+    "annotations": ["opex-integration", "v1", "inbound"],
+    "typeProperties": {
+      "host": "@{linkedService().host}",
+      "port": "@{linkedService().port}",
+      "authenticationType": "Basic",
+      "userName": "@{linkedService().userName}",
+      "password": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "@{linkedService().passwordSecretName}"
+      },
+      "skipHostKeyValidation": false
+    },
+    "parameters": {
+      "host":               { "type": "String", "defaultValue": "sftp.oraclefusion.example.com" },
+      "port":               { "type": "Int",    "defaultValue": 22 },
+      "userName":           { "type": "String", "defaultValue": "opex_integration" },
+      "passwordSecretName": { "type": "String", "defaultValue": "kv-sftp-fusion-password" }
+    }
+  }
+}

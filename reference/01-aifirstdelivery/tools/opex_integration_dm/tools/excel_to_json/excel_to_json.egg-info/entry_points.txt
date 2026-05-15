@@ -1,0 +1,2 @@
+[console_scripts]
+excel-to-json = excel_to_json.__main__:main

@@ -1,0 +1,125 @@
+{
+  "name": "pl_load_upsert_phase2",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Two-pass loading for self-lookups (e.g. BILL_TO_ACCOUNT → msdyn_billingaccount). Waits for Dataverse consistency, refreshes the affected master cache, then PATCHes only the phase-2 columns.",
+    "annotations": ["opex-integration", "v1", "inbound"],
+    "parameters": {
+      "entityKey":         { "type": "String" },
+      "runId":             { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":        { "type": "String" },
+      "targetEntity":      { "type": "String" },
+      "alternateKey":      { "type": "Array" },
+      "batchSize":         { "type": "Int", "defaultValue": 500 },
+      "selfLookupCacheKeys": { "type": "Array", "defaultValue": [] },
+      "phase2WaitStrategy":  { "type": "String", "defaultValue": "fixedWait30s" }
+    },
+    "activities": [
+      {
+        "name": "Wait_ForDataverseConsistency",
+        "type": "Wait",
+        "typeProperties": {
+          "waitTimeInSeconds": 30
+        }
+      },
+      {
+        "name": "ExecutePipeline_RefreshMasters",
+        "type": "ExecutePipeline",
+        "dependsOn": [{ "activity": "Wait_ForDataverseConsistency", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "pipeline": { "referenceName": "pl_master_prefetch", "type": "PipelineReference" },
+          "waitOnCompletion": true,
+          "parameters": {
+            "entityKey":    "@pipeline().parameters.entityKey",
+            "runId":        "@pipeline().parameters.runId",
+            "configPath":   "@pipeline().parameters.configPath",
+            "cacheKeys":    "@pipeline().parameters.selfLookupCacheKeys",
+            "forceRefresh": true
+          }
+        }
+      },
+      {
+        "name": "Copy_Phase2ToDataverse",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "ExecutePipeline_RefreshMasters", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.02:00:00", "retry": 5, "retryIntervalInSeconds": 60 },
+        "description": "PATCHes only phase-2 columns. writeMode=Update (not Upsert) so it errors out if a row went missing (signals load_upsert phase-1 left rows uncreated).",
+        "typeProperties": {
+          "source": {
+            "type": "ParquetSource",
+            "storeSettings": { "type": "AzureBlobFSReadSettings" }
+          },
+          "sink": {
+            "type": "CommonDataServiceForAppsSink",
+            "writeBehavior": "Upsert",
+            "alternateKeyName": "@join(pipeline().parameters.alternateKey, ',')",
+            "writeBatchSize":   "@pipeline().parameters.batchSize",
+            "ignoreNullValues": true,
+            "additionalHeaders": {
+              "MSCRM.BypassCustomPluginExecution": "true"
+            }
+          },
+          "enableSkipIncompatibleRow": true,
+          "logSettings": {
+            "enableCopyActivityLog": true,
+            "copyActivityLogSettings": { "logLevel": "Warning", "enableReliableLogging": true },
+            "logLocationSettings": {
+              "linkedServiceName": { "referenceName": "ls_adls", "type": "LinkedServiceReference" },
+              "path": "@concat('opex-integration/errors/', pipeline().parameters.entityKey, '/', pipeline().parameters.runId, '/load_errors_phase2')"
+            }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_parquet",
+          "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('final/', pipeline().parameters.entityKey, '/', pipeline().parameters.runId)",
+            "fileName": "phase2.parquet"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_dataverse",
+          "type": "DatasetReference",
+          "parameters": { "entityName": "@pipeline().parameters.targetEntity" }
+        }]
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "Copy_Phase2ToDataverse", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName", "value": "pl_load_upsert_phase2" },
+              { "name": "entityKey",    "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",        "value": "@pipeline().parameters.runId" },
+              { "name": "status",       "value": "Success" },
+              { "name": "completedAt",  "value": "@utcNow()" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_load_upsert_phase2.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_load_upsert_phase2.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/inbound" }
+  }
+}

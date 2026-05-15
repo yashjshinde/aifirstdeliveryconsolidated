@@ -1,0 +1,62 @@
+<!--
+dashboard.template.html - dashboard mockup.
+Rendered into projects/{p}/_aggregator/architecture/solution-prototype/dashboards/{slug}.html.
+Placeholders:
+  {{DASHBOARD_NAME}}, {{DASHBOARD_SLUG}}, {{PROJECT_NAME}}
+  {{TILE_GRID}}       - dashboard tiles (charts, KPIs, lists, PBI tile placeholders)
+  {{MODULES_NAV}}, {{PERSONAS_NAV}}, {{JOURNEYS_NAV}}, {{DASHBOARDS_NAV}}
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{DASHBOARD_NAME}} - {{PROJECT_NAME}}</title>
+  <link rel="stylesheet" href="../assets/d365-tokens.css" />
+  <link rel="stylesheet" href="../assets/prototype.css" />
+</head>
+<body>
+  <header class="topnav">
+    <div class="topnav-brand">D365 - {{PROJECT_NAME}}</div>
+    <div class="topnav-right">
+      <label class="persona-switcher">
+        Persona:
+        <select id="personaSwitcher"></select>
+      </label>
+      <span class="topnav-avatar">U</span>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <nav>
+      <h2 class="sidebar-section-title">Modules</h2>
+      <ul class="sidebar-list">{{MODULES_NAV}}</ul>
+      <h2 class="sidebar-section-title">Personas</h2>
+      <ul class="sidebar-list">{{PERSONAS_NAV}}</ul>
+      <h2 class="sidebar-section-title">Journeys</h2>
+      <ul class="sidebar-list">{{JOURNEYS_NAV}}</ul>
+      <h2 class="sidebar-section-title">Dashboards</h2>
+      <ul class="sidebar-list" data-current="{{DASHBOARD_SLUG}}">{{DASHBOARDS_NAV}}</ul>
+    </nav>
+  </aside>
+
+  <main class="main dashboard">
+    <div class="command-bar">
+      <button class="cmd-btn">Refresh</button>
+      <button class="cmd-btn">Edit layout</button>
+      <button class="cmd-btn">Share</button>
+    </div>
+
+    <div class="record-header">
+      <h1>{{DASHBOARD_NAME}}</h1>
+    </div>
+
+    <section class="dashboard-content">
+      <div class="dashboard-tile-grid">
+        {{TILE_GRID}}
+      </div>
+    </section>
+  </main>
+
+  <script src="../assets/prototype.js"></script>
+</body>
+</html>

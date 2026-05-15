@@ -1,0 +1,80 @@
+<!--
+module-hub.template.html - per-module landing page (Sales Hub / Service Hub / etc.).
+Rendered into projects/{p}/_aggregator/architecture/solution-prototype/modules/{slug}.html.
+Placeholders:
+  {{MODULE_NAME}}, {{MODULE_SLUG}}, {{PROJECT_NAME}}
+  {{ENTITY_TILES}}      - tile grid of entities in this module (with counts)
+  {{KEY_VIEWS}}         - HTML of stock + custom views available
+  {{KPI_TILES}}         - KPI tiles (e.g., "Active opportunities: 12", "Cases SLA-breached: 2")
+  {{MODULES_NAV}}, {{PERSONAS_NAV}}, {{JOURNEYS_NAV}}, {{DASHBOARDS_NAV}}
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{MODULE_NAME}} Hub - {{PROJECT_NAME}}</title>
+  <link rel="stylesheet" href="../assets/d365-tokens.css" />
+  <link rel="stylesheet" href="../assets/prototype.css" />
+</head>
+<body>
+  <header class="topnav">
+    <div class="topnav-brand">D365 - {{PROJECT_NAME}}</div>
+    <div class="topnav-right">
+      <label class="persona-switcher">
+        Persona:
+        <select id="personaSwitcher"></select>
+      </label>
+      <span class="topnav-avatar">U</span>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <nav>
+      <h2 class="sidebar-section-title">Modules</h2>
+      <ul class="sidebar-list" data-current="{{MODULE_SLUG}}">{{MODULES_NAV}}</ul>
+      <h2 class="sidebar-section-title">Personas</h2>
+      <ul class="sidebar-list">{{PERSONAS_NAV}}</ul>
+      <h2 class="sidebar-section-title">Journeys</h2>
+      <ul class="sidebar-list">{{JOURNEYS_NAV}}</ul>
+      <h2 class="sidebar-section-title">Dashboards</h2>
+      <ul class="sidebar-list">{{DASHBOARDS_NAV}}</ul>
+    </nav>
+  </aside>
+
+  <main class="main module-hub">
+    <div class="command-bar">
+      <button class="cmd-btn primary">+ New</button>
+      <button class="cmd-btn">Refresh</button>
+      <button class="cmd-btn">Filter</button>
+      <button class="cmd-btn">Export</button>
+    </div>
+
+    <div class="record-header">
+      <h1>{{MODULE_NAME}} Hub</h1>
+    </div>
+
+    <section class="hub-section">
+      <h2>KPIs</h2>
+      <div class="tile-grid kpi-grid">
+        {{KPI_TILES}}
+      </div>
+    </section>
+
+    <section class="hub-section">
+      <h2>Entities</h2>
+      <div class="tile-grid entity-grid">
+        {{ENTITY_TILES}}
+      </div>
+    </section>
+
+    <section class="hub-section">
+      <h2>Key views</h2>
+      <ul class="view-list">
+        {{KEY_VIEWS}}
+      </ul>
+    </section>
+  </main>
+
+  <script src="../assets/prototype.js"></script>
+</body>
+</html>

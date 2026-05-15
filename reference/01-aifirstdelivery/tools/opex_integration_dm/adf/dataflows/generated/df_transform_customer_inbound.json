@@ -1,0 +1,51 @@
+{
+  "name": "df_transform_customer_inbound",
+  "type": "Microsoft.DataFactory/factories/dataflows",
+  "apiVersion": "2018-06-01",
+  "properties": {
+    "type": "MappingDataFlow",
+    "typeProperties": {
+      "sources": [],
+      "sinks": [],
+      "transformations": [],
+      "scriptLines": [
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    output(\n        ACCOUNT_NUMBER as string,\n        CUSTOMER_NAME as string,\n        ACCOUNT_STATUS as string,\n        ACCOUNT_TYPE as string,\n        EQUIPMET_DISCOUNT as string,\n        PARTS_DISCOUNT as string,\n        NATIONAL_DISCOUNT as string,\n        CATEGORY_CODE as string,\n        BILL_TO_ACCOUNT as string,\n        PRICE_LIST as string,\n        FREIGHT_TERMS as string,\n        SHIPPING_METHOD as string,\n        `Credit Hold` as string,\n        `Payment Term` as string,\n        `Large Customer` as string,\n        `Site Number` as string,\n        LAST_UPDATE_DATE as string,\n        REL_ACCOUNT_NUMBER as string,\n        CREATED_BY as string,\n        CREATION_DATE as string,\n        LAST_UPDATED_BY as string\n    ),\n    format: 'parquet'\n) ~> srcStaged",
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    broadcast: 'left',\n    output(\n        opx_code as string,\n        opx_equipmentdiscountid as string\n    ),\n    format: 'parquet'\n) ~> srcMasters_opx_equipmentdiscount",
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    broadcast: 'left',\n    output(\n        opx_code as string,\n        opx_partdiscountid as string\n    ),\n    format: 'parquet'\n) ~> srcMasters_opx_partdiscount",
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    broadcast: 'left',\n    output(\n        opx_code as string,\n        opx_nationaldiscountid as string\n    ),\n    format: 'parquet'\n) ~> srcMasters_opx_nationaldiscount",
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    broadcast: 'left',\n    output(\n        opx_code as string,\n        opx_customercategoryid as string\n    ),\n    format: 'parquet'\n) ~> srcMasters_opx_customercategory",
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    broadcast: 'left',\n    output(\n        accountnumber as string,\n        accountid as string\n    ),\n    format: 'parquet'\n) ~> srcMasters_account",
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    broadcast: 'left',\n    output(\n        name as string,\n        pricelevelid as string\n    ),\n    format: 'parquet'\n) ~> srcMasters_pricelevel",
+        "source(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    broadcast: 'left',\n    output(\n        opx_code as string,\n        opx_largecustomerid as string\n    ),\n    format: 'parquet'\n) ~> srcMasters_opx_largecustomer",
+        "srcStaged derive(\n    accountnumber = toString(ACCOUNT_NUMBER),\n    name = toString(CUSTOMER_NAME),\n    statecode = case(equals(ACCOUNT_STATUS, 'A'), 0, equals(ACCOUNT_STATUS, 'I'), 1, 0),\n    opx_AccountType = case(equals(trim(ACCOUNT_TYPE), 'Billing Account'), 884870000, equals(trim(ACCOUNT_TYPE), 'Service Account'), 884870001, equals(trim(ACCOUNT_TYPE), 'Both'), 884870002, null())\n) ~> dc_1",
+        "dc_1 derive(\n    __lookup_key_opx_EquipmentDiscountId = EQUIPMET_DISCOUNT\n) ~> dc_2",
+        "dc_2, srcMasters_opx_equipmentdiscount lookup(\n    __lookup_key_opx_EquipmentDiscountId == srcMasters_opx_equipmentdiscount@opx_code,\n    multiple: false,\n    pickup: 'any',\n    broadcast: 'left'\n) ~> lk_1",
+        "lk_1 derive(\n    opx_EquipmentDiscountId = srcMasters_opx_equipmentdiscount@opx_equipmentdiscountid\n) ~> dc_3",
+        "dc_3 derive(\n    __lookup_key_opx_partdiscountid = PARTS_DISCOUNT\n) ~> dc_4",
+        "dc_4, srcMasters_opx_partdiscount lookup(\n    __lookup_key_opx_partdiscountid == srcMasters_opx_partdiscount@opx_code,\n    multiple: false,\n    pickup: 'any',\n    broadcast: 'left'\n) ~> lk_2",
+        "lk_2 derive(\n    opx_partdiscountid = srcMasters_opx_partdiscount@opx_partdiscountid\n) ~> dc_5",
+        "dc_5 derive(\n    __lookup_key_opx_nationaldiscountid = NATIONAL_DISCOUNT\n) ~> dc_6",
+        "dc_6, srcMasters_opx_nationaldiscount lookup(\n    __lookup_key_opx_nationaldiscountid == srcMasters_opx_nationaldiscount@opx_code,\n    multiple: false,\n    pickup: 'any',\n    broadcast: 'left'\n) ~> lk_3",
+        "lk_3 derive(\n    opx_nationaldiscountid = srcMasters_opx_nationaldiscount@opx_nationaldiscountid\n) ~> dc_7",
+        "dc_7 derive(\n    __lookup_key_opx_customercategoryid = CATEGORY_CODE\n) ~> dc_8",
+        "dc_8, srcMasters_opx_customercategory lookup(\n    __lookup_key_opx_customercategoryid == srcMasters_opx_customercategory@opx_code,\n    multiple: false,\n    pickup: 'any',\n    broadcast: 'left'\n) ~> lk_4",
+        "lk_4 derive(\n    opx_customercategoryid = srcMasters_opx_customercategory@opx_customercategoryid\n) ~> dc_9",
+        "dc_9 derive(\n    __lookup_key_msdyn_billingaccount = BILL_TO_ACCOUNT\n) ~> dc_10",
+        "dc_10, srcMasters_account lookup(\n    __lookup_key_msdyn_billingaccount == srcMasters_account@accountnumber,\n    multiple: false,\n    pickup: 'any',\n    broadcast: 'left'\n) ~> lk_5",
+        "lk_5 derive(\n    msdyn_billingaccount = srcMasters_account@accountid\n) ~> dc_11",
+        "dc_11 derive(\n    __lookup_key_defaultpricelevelid = PRICE_LIST\n) ~> dc_12",
+        "dc_12, srcMasters_pricelevel lookup(\n    __lookup_key_defaultpricelevelid == srcMasters_pricelevel@name,\n    multiple: false,\n    pickup: 'any',\n    broadcast: 'left'\n) ~> lk_6",
+        "lk_6 derive(\n    defaultpricelevelid = srcMasters_pricelevel@pricelevelid\n) ~> dc_13",
+        "dc_13 derive(\n    address1_freighttermscode = case(null()),\n    address1_shippingmethodcode = case(null()),\n    creditonhold = case(or(equals(`Credit Hold`, 'Y'), equals(`Credit Hold`, 'Yes'), equals(`Credit Hold`, 'YES'), equals(`Credit Hold`, '1'), equals(`Credit Hold`, 'true')), true(), or(equals(`Credit Hold`, 'N'), equals(`Credit Hold`, 'No'), equals(`Credit Hold`, 'NO'), equals(`Credit Hold`, '0'), equals(`Credit Hold`, 'false')), false(), null()),\n    paymenttermscode = case(null())\n) ~> dc_14",
+        "dc_14 derive(\n    __lookup_key_opx_largecustomerid = `Large Customer`\n) ~> dc_15",
+        "dc_15, srcMasters_opx_largecustomer lookup(\n    __lookup_key_opx_largecustomerid == srcMasters_opx_largecustomer@opx_code,\n    multiple: false,\n    pickup: 'any',\n    broadcast: 'left'\n) ~> lk_7",
+        "lk_7 derive(\n    opx_largecustomerid = srcMasters_opx_largecustomer@opx_largecustomerid\n) ~> dc_16",
+        "dc_16 derive(\n    opex_SiteNumber = toString(`Site Number`),\n    modifiedon = toTimestamp(LAST_UPDATE_DATE, 'yyyy-MM-dd HH:mm:ss'),\n    opx_fusionRefAccountNumber = toString(REL_ACCOUNT_NUMBER),\n    opx_sourceCreatedBy = toString(CREATED_BY),\n    overriddencreatedon = toTimestamp(CREATION_DATE, 'yyyy-MM-dd HH:mm:ss'),\n    opx_sourceModifiedBy = toString(LAST_UPDATED_BY)\n) ~> dc_17",
+        "dc_17 derive(\n    __row_valid = (isNull(ACCOUNT_STATUS) || !isNull(statecode)) && (isNull(ACCOUNT_TYPE) || !isNull(opx_AccountType)) && (isNull(EQUIPMET_DISCOUNT) || !isNull(opx_EquipmentDiscountId)) && (isNull(PARTS_DISCOUNT) || !isNull(opx_partdiscountid)) && (isNull(NATIONAL_DISCOUNT) || !isNull(opx_nationaldiscountid)) && (isNull(CATEGORY_CODE) || !isNull(opx_customercategoryid)) && (isNull(`Payment Term`) || !isNull(paymenttermscode)) && (isNull(`Large Customer`) || !isNull(opx_largecustomerid))\n) ~> dc_18",
+        "dc_18 split(\n    __row_valid == true(),\n    disjoint: false\n) ~> cs_1@(valid)",
+        "cs_1@valid sink(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    format: 'parquet',\n    skipDuplicateMapInputs: true,\n    skipDuplicateMapOutputs: true,\n    errorHandlingOption: 'stopOnFirstError'\n) ~> sinkFinal",
+        "cs_1 sink(\n    allowSchemaDrift: true,\n    validateSchema: false,\n    format: 'parquet',\n    skipDuplicateMapInputs: true,\n    skipDuplicateMapOutputs: true,\n    errorHandlingOption: 'stopOnFirstError'\n) ~> sinkTransformErrors"
+      ]
+    }
+  }
+}

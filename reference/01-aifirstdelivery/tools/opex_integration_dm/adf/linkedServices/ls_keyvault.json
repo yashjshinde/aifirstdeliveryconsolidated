@@ -1,0 +1,17 @@
+{
+  "name": "ls_keyvault",
+  "type": "Microsoft.DataFactory/factories/linkedServices",
+  "properties": {
+    "type": "AzureKeyVault",
+    "annotations": ["opex-integration", "v1"],
+    "typeProperties": {
+      "baseUrl": "@{linkedService().baseUrl}"
+    },
+    "parameters": {
+      "baseUrl": {
+        "type": "String",
+        "defaultValue": "https://kv-opex-dev.vault.azure.net/"
+      }
+    }
+  }
+}

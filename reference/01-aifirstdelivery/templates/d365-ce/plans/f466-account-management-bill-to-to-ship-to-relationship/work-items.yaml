@@ -1,0 +1,232 @@
+work-items:
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-PBI-001"
+    level: 3
+    alm-type: Product Backlog Item
+    title: "As a System / Operations Admin, I want to handle AC-1 for Account Management - Bill‑To to Ship‑To Relationship"
+    source: generated
+    parent: "466"
+    alm-id: null
+    story-points: 5
+    acceptance-criteria: |
+      - Given a bill‑to is linked to multiple ship‑tos in Fusion, When synced with D365 , Then an equivalent relationship will be represented in D365 where one or more ship to (service account) is linked to a Bill to (billing account).
+      - Given the user attempts an unauthorised edit, When the user saves, Then the save is blocked with a localized validation message.
+    fr-refs:
+      - FR-001
+      - FR-002
+      - FR-003
+      - FR-004
+      - FR-005
+      - FR-006
+    status: TODO
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-001"
+    level: 4
+    alm-type: Task
+    title: "Add custom column `opex_accounttype` (Billing/Service) on Account"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-001"
+    alm-id: null
+    component-type: SchemaChange
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: Config
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-002"
+    level: 4
+    alm-type: Task
+    title: "Configure composite alternate key on Account (Account Number + Site Number + Type)"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-001"
+    alm-id: null
+    component-type: SchemaChange
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: Config
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-003"
+    level: 4
+    alm-type: Task
+    title: "Configure Billing Account lookup on Account form"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Functional
+    type: Config
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-004"
+    level: 4
+    alm-type: Task
+    title: "Localization — register per-culture RESX / Web Resources for all user-facing strings"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Developer
+    type: Dev
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-005"
+    level: 4
+    alm-type: Task
+    title: "Translation export from Dev → CI commit (per Constitution §07 Translation CI)"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: Developer
+    type: DevOps
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-006"
+    level: 4
+    alm-type: Task
+    title: "System / UAT test execution per `docs-generated/{f}/test-cases/`"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-001"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-001
+    role: QA
+    type: Testing
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-PBI-002"
+    level: 3
+    alm-type: Product Backlog Item
+    title: "As a System / Operations Admin, I want to handle AC-2 for Account Management - Bill‑To to Ship‑To Relationship"
+    source: generated
+    parent: "466"
+    alm-id: null
+    story-points: 5
+    acceptance-criteria: |
+      - Given a Bill to is also a Ship to in fusion, When synced with D365, Then an equivalent relationship will be represented in D365. |.
+      - Given the user attempts an unauthorised edit, When the user saves, Then the save is blocked with a localized validation message.
+    fr-refs:
+      - FR-004
+      - FR-005
+      - FR-006
+      - FR-007
+      - FR-008
+      - FR-009
+    status: TODO
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-007"
+    level: 4
+    alm-type: Task
+    title: "Add custom column `opex_accounttype` (Billing/Service) on Account"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-002"
+    alm-id: null
+    component-type: SchemaChange
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Functional
+    type: Config
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-008"
+    level: 4
+    alm-type: Task
+    title: "Configure composite alternate key on Account (Account Number + Site Number + Type)"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-002"
+    alm-id: null
+    component-type: SchemaChange
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Functional
+    type: Config
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-009"
+    level: 4
+    alm-type: Task
+    title: "Configure Billing Account lookup on Account form"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Functional
+    type: Config
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-010"
+    level: 4
+    alm-type: Task
+    title: "Localization — register per-culture RESX / Web Resources for all user-facing strings"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Developer
+    type: Dev
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-011"
+    level: 4
+    alm-type: Task
+    title: "Translation export from Dev → CI commit (per Constitution §07 Translation CI)"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: S
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: Developer
+    type: DevOps
+  - id: "f466-account-management-bill-to-to-ship-to-relationship-T-012"
+    level: 4
+    alm-type: Task
+    title: "System / UAT test execution per `docs-generated/{f}/test-cases/`"
+    source: generated-parent
+    parent: "f466-account-management-bill-to-to-ship-to-relationship-PBI-002"
+    alm-id: null
+    component-type: Configuration
+    complexity: M
+    status: TODO
+    validation-status: NOT VALIDATED
+    impl-doc-path: null
+    fr-refs:
+      - FR-004
+    role: QA
+    type: Testing
+

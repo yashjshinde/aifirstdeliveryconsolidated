@@ -1,0 +1,394 @@
+{
+  "name": "pl_master_orchestrator",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Single-entity orchestrator. Reads entity config, lists existing checkpoint files, skips any sub-pipeline whose checkpoint already exists (B010 idempotent re-run), runs the remaining inbound or outbound chain, then invokes the audit aggregator. Concurrency 1 per (entityKey, direction).",
+    "annotations": ["opex-integration", "v1"],
+    "concurrency": 1,
+    "parameters": {
+      "entityKey":    { "type": "String" },
+      "direction":    { "type": "String", "defaultValue": "inbound" },
+      "runId":        { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":   { "type": "String", "defaultValue": "" },
+      "waveRunId":    { "type": "String", "defaultValue": "" },
+      "runMode":      { "type": "String", "defaultValue": "incremental" },
+      "forceFull":    { "type": "Bool",   "defaultValue": false },
+      "cleanRestart": { "type": "Bool",   "defaultValue": false }
+    },
+    "variables": {
+      "resolvedConfigPath": { "type": "String" },
+      "resolvedDirection":  { "type": "String" },
+      "completedSteps":     { "type": "Array",  "defaultValue": [] },
+      "cacheKeys":          { "type": "Array",  "defaultValue": [] },
+      "relationships":      { "type": "Array",  "defaultValue": [] },
+      "postLoadActions":    { "type": "Array",  "defaultValue": [] }
+    },
+    "activities": [
+      {
+        "name": "SetVar_ResolveConfigPath",
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "resolvedConfigPath",
+          "value": "@if(empty(pipeline().parameters.configPath), concat('config/entities/', pipeline().parameters.entityKey, '.json'), pipeline().parameters.configPath)"
+        }
+      },
+      {
+        "name": "Lookup_EntityConfig",
+        "type": "Lookup",
+        "dependsOn": [{ "activity": "SetVar_ResolveConfigPath", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:05:00", "retry": 2, "retryIntervalInSeconds": 15 },
+        "typeProperties": {
+          "source": { "type": "JsonSource", "storeSettings": { "type": "AzureBlobFSReadSettings" } },
+          "dataset": {
+            "referenceName": "ds_adls_json",
+            "type": "DatasetReference",
+            "parameters": {
+              "folder":   "@substring(variables('resolvedConfigPath'), 0, lastIndexOf(variables('resolvedConfigPath'), '/'))",
+              "fileName": "@substring(variables('resolvedConfigPath'), add(lastIndexOf(variables('resolvedConfigPath'), '/'), 1), sub(length(variables('resolvedConfigPath')), add(lastIndexOf(variables('resolvedConfigPath'), '/'), 1)))"
+            }
+          },
+          "firstRowOnly": true
+        }
+      },
+      {
+        "name": "GetMetadata_ExistingCheckpoints",
+        "type": "GetMetadata",
+        "dependsOn": [{ "activity": "Lookup_EntityConfig", "dependencyConditions": ["Succeeded"] }],
+        "description": "B010: list checkpoint files under /audit/checkpoints/<runId>/. Used to skip already-completed sub-pipelines on re-run.",
+        "policy": { "timeout": "0.00:02:00", "retry": 1, "retryIntervalInSeconds": 5 },
+        "typeProperties": {
+          "dataset": {
+            "referenceName": "ds_adls_json",
+            "type": "DatasetReference",
+            "parameters": {
+              "folder":   "@concat('audit/checkpoints/', pipeline().parameters.runId)",
+              "fileName": "*.json"
+            }
+          },
+          "fieldList": ["childItems"]
+        }
+      },
+      {
+        "name": "If_CleanRestart",
+        "type": "IfCondition",
+        "dependsOn": [{ "activity": "GetMetadata_ExistingCheckpoints", "dependencyConditions": ["Succeeded", "Failed"] }],
+        "typeProperties": {
+          "expression": { "value": "@pipeline().parameters.cleanRestart", "type": "Expression" },
+          "ifTrueActivities": [
+            {
+              "name": "SetVar_NoCompletedSteps",
+              "type": "SetVariable",
+              "typeProperties": { "variableName": "completedSteps", "value": "@json('[]')" }
+            }
+          ],
+          "ifFalseActivities": [
+            {
+              "name": "SetVar_LoadCompletedSteps",
+              "type": "SetVariable",
+              "description": "Reduce childItems to a string array of pipeline names (strip .json).",
+              "typeProperties": {
+                "variableName": "completedSteps",
+                "value": "@if(equals(coalesce(activity('GetMetadata_ExistingCheckpoints').output.childItems, json('[]')), json('[]')), json('[]'), activity('GetMetadata_ExistingCheckpoints').output.childItems)"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "SetVar_ResolveDirection",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "If_CleanRestart", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "resolvedDirection",
+          "value": "@if(or(equals(activity('Lookup_EntityConfig').output.firstRow.direction, 'bidirectional'), empty(activity('Lookup_EntityConfig').output.firstRow.direction)), pipeline().parameters.direction, activity('Lookup_EntityConfig').output.firstRow.direction)"
+        }
+      },
+      {
+        "name": "SetVar_CacheKeys",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "If_CleanRestart", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "cacheKeys",
+          "value": "@coalesce(activity('Lookup_EntityConfig').output.firstRow.cacheKeys, json('[]'))"
+        }
+      },
+      {
+        "name": "SetVar_Relationships",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "If_CleanRestart", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "relationships",
+          "value": "@coalesce(activity('Lookup_EntityConfig').output.firstRow.relationships, json('[]'))"
+        }
+      },
+      {
+        "name": "SetVar_PostLoad",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "If_CleanRestart", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "postLoadActions",
+          "value": "@coalesce(activity('Lookup_EntityConfig').output.firstRow.postLoadActions, json('[]'))"
+        }
+      },
+      {
+        "name": "Switch_Direction",
+        "type": "Switch",
+        "dependsOn": [
+          { "activity": "SetVar_ResolveDirection", "dependencyConditions": ["Succeeded"] },
+          { "activity": "SetVar_CacheKeys",        "dependencyConditions": ["Succeeded"] },
+          { "activity": "SetVar_Relationships",    "dependencyConditions": ["Succeeded"] },
+          { "activity": "SetVar_PostLoad",         "dependencyConditions": ["Succeeded"] }
+        ],
+        "typeProperties": {
+          "on": { "value": "@variables('resolvedDirection')", "type": "Expression" },
+          "cases": [
+            {
+              "value": "inbound",
+              "activities": [
+                {
+                  "name": "If_RunExtract",
+                  "type": "IfCondition",
+                  "description": "B010: skip when /audit/checkpoints/<runId>/pl_extract_file.json exists.",
+                  "typeProperties": {
+                    "expression": { "value": "@empty(filter(variables('completedSteps'), equals(item().name, 'pl_extract_file.json')))", "type": "Expression" },
+                    "ifTrueActivities": [
+                      {
+                        "name": "ExecutePipeline_Extract",
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                          "pipeline": { "referenceName": "pl_extract_file", "type": "PipelineReference" },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "entityKey":           "@pipeline().parameters.entityKey",
+                            "runId":               "@pipeline().parameters.runId",
+                            "configPath":          "@variables('resolvedConfigPath')",
+                            "sftpFolderPath":      "@activity('Lookup_EntityConfig').output.firstRow.source.inbound.pathPattern",
+                            "sftpFileNamePattern": "@last(split(activity('Lookup_EntityConfig').output.firstRow.source.inbound.pathPattern, '/'))",
+                            "format":              "@activity('Lookup_EntityConfig').output.firstRow.source.format",
+                            "delimiter":           "@activity('Lookup_EntityConfig').output.firstRow.source.delimiter",
+                            "encoding":            "@activity('Lookup_EntityConfig').output.firstRow.source.encoding",
+                            "runMode":             "@pipeline().parameters.runMode"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "If_RunStageValidate",
+                  "type": "IfCondition",
+                  "dependsOn": [{ "activity": "If_RunExtract", "dependencyConditions": ["Succeeded"] }],
+                  "typeProperties": {
+                    "expression": { "value": "@empty(filter(variables('completedSteps'), equals(item().name, 'pl_stage_validate.json')))", "type": "Expression" },
+                    "ifTrueActivities": [
+                      {
+                        "name": "ExecutePipeline_StageValidate",
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                          "pipeline": { "referenceName": "pl_stage_validate", "type": "PipelineReference" },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "entityKey":   "@pipeline().parameters.entityKey",
+                            "runId":       "@pipeline().parameters.runId",
+                            "configPath":  "@variables('resolvedConfigPath')",
+                            "onDuplicate": "@activity('Lookup_EntityConfig').output.firstRow.dedup.onDuplicate"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "If_RunMasterPrefetch",
+                  "type": "IfCondition",
+                  "dependsOn": [{ "activity": "If_RunStageValidate", "dependencyConditions": ["Succeeded"] }],
+                  "typeProperties": {
+                    "expression": { "value": "@empty(filter(variables('completedSteps'), equals(item().name, 'pl_master_prefetch.json')))", "type": "Expression" },
+                    "ifTrueActivities": [
+                      {
+                        "name": "ExecutePipeline_MasterPrefetch",
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                          "pipeline": { "referenceName": "pl_master_prefetch", "type": "PipelineReference" },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "entityKey":  "@pipeline().parameters.entityKey",
+                            "runId":      "@pipeline().parameters.runId",
+                            "configPath": "@variables('resolvedConfigPath')",
+                            "cacheKeys":  "@variables('cacheKeys')"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "If_RunTransformInbound",
+                  "type": "IfCondition",
+                  "dependsOn": [{ "activity": "If_RunMasterPrefetch", "dependencyConditions": ["Succeeded"] }],
+                  "typeProperties": {
+                    "expression": { "value": "@empty(filter(variables('completedSteps'), equals(item().name, 'pl_transform_inbound.json')))", "type": "Expression" },
+                    "ifTrueActivities": [
+                      {
+                        "name": "ExecutePipeline_TransformInbound",
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                          "pipeline": { "referenceName": "pl_transform_inbound", "type": "PipelineReference" },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "entityKey":    "@pipeline().parameters.entityKey",
+                            "runId":        "@pipeline().parameters.runId",
+                            "configPath":   "@variables('resolvedConfigPath')",
+                            "dataflowName": ""
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "If_RunLoadUpsert",
+                  "type": "IfCondition",
+                  "dependsOn": [{ "activity": "If_RunTransformInbound", "dependencyConditions": ["Succeeded"] }],
+                  "typeProperties": {
+                    "expression": { "value": "@empty(filter(variables('completedSteps'), equals(item().name, 'pl_load_upsert.json')))", "type": "Expression" },
+                    "ifTrueActivities": [
+                      {
+                        "name": "ExecutePipeline_LoadUpsert",
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                          "pipeline": { "referenceName": "pl_load_upsert", "type": "PipelineReference" },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "entityKey":     "@pipeline().parameters.entityKey",
+                            "runId":         "@pipeline().parameters.runId",
+                            "configPath":    "@variables('resolvedConfigPath')",
+                            "targetEntity":  "@activity('Lookup_EntityConfig').output.firstRow.target.entityLogicalName",
+                            "alternateKey":  "@activity('Lookup_EntityConfig').output.firstRow.target.alternateKey",
+                            "bypassPlugins": "@coalesce(activity('Lookup_EntityConfig').output.firstRow.target.inbound.bypassPlugins, true)"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "If_RunLoadPhase2",
+                  "type": "IfCondition",
+                  "dependsOn": [{ "activity": "If_RunLoadUpsert", "dependencyConditions": ["Succeeded"] }],
+                  "typeProperties": {
+                    "expression": { "value": "@empty(filter(variables('completedSteps'), equals(item().name, 'pl_load_upsert_phase2.json')))", "type": "Expression" },
+                    "ifTrueActivities": [
+                      {
+                        "name": "ExecutePipeline_LoadPhase2",
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                          "pipeline": { "referenceName": "pl_load_upsert_phase2", "type": "PipelineReference" },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "entityKey":            "@pipeline().parameters.entityKey",
+                            "runId":                "@pipeline().parameters.runId",
+                            "configPath":           "@variables('resolvedConfigPath')",
+                            "targetEntity":         "@activity('Lookup_EntityConfig').output.firstRow.target.entityLogicalName",
+                            "alternateKey":         "@activity('Lookup_EntityConfig').output.firstRow.target.alternateKey",
+                            "selfLookupCacheKeys":  "@variables('cacheKeys')"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "If_RunLoadRelationships",
+                  "type": "IfCondition",
+                  "dependsOn": [{ "activity": "If_RunLoadPhase2", "dependencyConditions": ["Succeeded"] }],
+                  "typeProperties": {
+                    "expression": { "value": "@empty(filter(variables('completedSteps'), equals(item().name, 'pl_load_relationships.json')))", "type": "Expression" },
+                    "ifTrueActivities": [
+                      {
+                        "name": "ExecutePipeline_LoadRelationships",
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                          "pipeline": { "referenceName": "pl_load_relationships", "type": "PipelineReference" },
+                          "waitOnCompletion": true,
+                          "parameters": {
+                            "entityKey":       "@pipeline().parameters.entityKey",
+                            "runId":           "@pipeline().parameters.runId",
+                            "configPath":      "@variables('resolvedConfigPath')",
+                            "relationships":   "@variables('relationships')",
+                            "postLoadActions": "@variables('postLoadActions')"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "value": "outbound",
+              "activities": [
+                { "name": "Outbound_Placeholder", "type": "SetVariable", "typeProperties": { "variableName": "resolvedDirection", "value": "outbound (in v1: invoke pl_extract_dataverse → pl_transform_outbound → pl_export_relationships → pl_deliver_sftp → pl_advance_watermark with the same checkpoint-skip pattern)" } }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "ExecutePipeline_AuditAggregator",
+        "type": "ExecutePipeline",
+        "dependsOn": [{ "activity": "Switch_Direction", "dependencyConditions": ["Succeeded", "Failed"] }],
+        "description": "B014: consolidate per-pipeline checkpoint JSONs into one run_history row.",
+        "typeProperties": {
+          "pipeline": { "referenceName": "pl_audit_aggregator", "type": "PipelineReference" },
+          "waitOnCompletion": true,
+          "parameters": {
+            "runId":       "@pipeline().parameters.runId",
+            "entityKey":   "@pipeline().parameters.entityKey",
+            "waveRunId":   "@pipeline().parameters.waveRunId",
+            "direction":   "@variables('resolvedDirection')",
+            "finalStatus": "Success"
+          }
+        }
+      },
+      {
+        "name": "Copy_EntityStatus",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "ExecutePipeline_AuditAggregator", "dependencyConditions": ["Succeeded", "Failed"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "entityKey",   "value": "@pipeline().parameters.entityKey" },
+              { "name": "direction",   "value": "@variables('resolvedDirection')" },
+              { "name": "runId",       "value": "@pipeline().parameters.runId" },
+              { "name": "waveRunId",   "value": "@pipeline().parameters.waveRunId" },
+              { "name": "status",      "value": "Success" },
+              { "name": "completedAt", "value": "@utcNow()" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('audit/wave_runs/', if(empty(pipeline().parameters.waveRunId), pipeline().parameters.runId, pipeline().parameters.waveRunId))",
+            "fileName": "@concat(pipeline().parameters.entityKey, '.json')"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('audit/wave_runs/', if(empty(pipeline().parameters.waveRunId), pipeline().parameters.runId, pipeline().parameters.waveRunId))",
+            "fileName": "@concat(pipeline().parameters.entityKey, '.json')"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/orchestrators" }
+  }
+}

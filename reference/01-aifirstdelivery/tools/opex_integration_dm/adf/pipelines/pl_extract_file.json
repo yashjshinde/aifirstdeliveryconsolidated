@@ -1,0 +1,184 @@
+{
+  "name": "pl_extract_file",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Inbound — SFTP → /raw/<entityKey>/<runId>/. Driven by source.inbound.pathPattern from the entity config.",
+    "annotations": ["opex-integration", "v1", "inbound"],
+    "parameters": {
+      "entityKey":         { "type": "String" },
+      "runId":             { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":        { "type": "String" },
+      "sftpFolderPath":    { "type": "String" },
+      "sftpFileNamePattern": { "type": "String", "defaultValue": "*.csv" },
+      "format":            { "type": "String", "defaultValue": "csv" },
+      "delimiter":         { "type": "String", "defaultValue": "," },
+      "encoding":          { "type": "String", "defaultValue": "UTF-8" },
+      "worksheet":         { "type": "String", "defaultValue": "" },
+      "onMultipleFiles":   { "type": "String", "defaultValue": "concat" },
+      "runMode":           { "type": "String", "defaultValue": "incremental" }
+    },
+    "variables": {
+      "rowsRead":    { "type": "Integer", "defaultValue": 0 },
+      "rowsWritten": { "type": "Integer", "defaultValue": 0 },
+      "filesFound":  { "type": "Integer", "defaultValue": 0 }
+    },
+    "activities": [
+      {
+        "name": "GetMetadata_SftpFiles",
+        "type": "GetMetadata",
+        "policy": { "timeout": "0.00:10:00", "retry": 3, "retryIntervalInSeconds": 30 },
+        "userProperties": [],
+        "typeProperties": {
+          "dataset": {
+            "referenceName": "ds_sftp_csv",
+            "type": "DatasetReference",
+            "parameters": {
+              "folderPath": "@pipeline().parameters.sftpFolderPath",
+              "fileName":   "@pipeline().parameters.sftpFileNamePattern",
+              "delimiter":  "@pipeline().parameters.delimiter",
+              "encoding":   "@pipeline().parameters.encoding"
+            }
+          },
+          "fieldList": ["childItems"],
+          "storeSettings": {
+            "type": "SftpReadSettings",
+            "recursive": false,
+            "wildcardFolderPath": "@pipeline().parameters.sftpFolderPath",
+            "wildcardFileName":  "@pipeline().parameters.sftpFileNamePattern"
+          }
+        }
+      },
+      {
+        "name": "SetVar_FilesFound",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "GetMetadata_SftpFiles", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "filesFound",
+          "value": "@length(activity('GetMetadata_SftpFiles').output.childItems)"
+        }
+      },
+      {
+        "name": "If_AnyFilesFound",
+        "type": "IfCondition",
+        "dependsOn": [{ "activity": "SetVar_FilesFound", "dependencyConditions": ["Succeeded"] }],
+        "userProperties": [],
+        "typeProperties": {
+          "expression": {
+            "value": "@greater(variables('filesFound'), 0)",
+            "type": "Expression"
+          },
+          "ifFalseActivities": [
+            {
+              "name": "Skip_NoFilesNoOp",
+              "type": "SetVariable",
+              "typeProperties": { "variableName": "rowsRead", "value": "0" }
+            }
+          ],
+          "ifTrueActivities": [
+            {
+              "name": "Copy_SftpToRaw",
+              "type": "Copy",
+              "policy": { "timeout": "0.02:00:00", "retry": 3, "retryIntervalInSeconds": 60 },
+              "typeProperties": {
+                "source": {
+                  "type": "DelimitedTextSource",
+                  "storeSettings": {
+                    "type": "SftpReadSettings",
+                    "recursive": false,
+                    "wildcardFolderPath": "@pipeline().parameters.sftpFolderPath",
+                    "wildcardFileName":  "@pipeline().parameters.sftpFileNamePattern",
+                    "enablePartitionDiscovery": false
+                  },
+                  "formatSettings": { "type": "DelimitedTextReadSettings" }
+                },
+                "sink": {
+                  "type": "ParquetSink",
+                  "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+                  "formatSettings": { "type": "ParquetWriteSettings" }
+                },
+                "enableStaging": false,
+                "translator": { "type": "TabularTranslator", "typeConversion": true }
+              },
+              "inputs": [
+                {
+                  "referenceName": "ds_sftp_csv",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "folderPath": "@pipeline().parameters.sftpFolderPath",
+                    "fileName":   "@pipeline().parameters.sftpFileNamePattern",
+                    "delimiter":  "@pipeline().parameters.delimiter",
+                    "encoding":   "@pipeline().parameters.encoding"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "referenceName": "ds_adls_parquet",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "folder":   "@concat('raw/', pipeline().parameters.entityKey, '/', pipeline().parameters.runId)",
+                    "fileName": "data.parquet"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "SetVar_RowsCopied",
+              "type": "SetVariable",
+              "dependsOn": [{ "activity": "Copy_SftpToRaw", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": {
+                "variableName": "rowsWritten",
+                "value": "@string(activity('Copy_SftpToRaw').output.rowsCopied)"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "If_AnyFilesFound", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName", "value": "pl_extract_file" },
+              { "name": "entityKey",    "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",        "value": "@pipeline().parameters.runId" },
+              { "name": "status",       "value": "Success" },
+              { "name": "completedAt",  "value": "@utcNow()" },
+              { "name": "filesFound",   "value": "@variables('filesFound')" },
+              { "name": "rowsWritten",  "value": "@variables('rowsWritten')" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_adls_json",
+            "type": "DatasetReference",
+            "parameters": {
+              "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+              "fileName": "pl_extract_file.json"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_adls_json",
+            "type": "DatasetReference",
+            "parameters": {
+              "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+              "fileName": "pl_extract_file.json"
+            }
+          }
+        ]
+      }
+    ],
+    "folder": { "name": "opex/inbound" }
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "name": "pl_load_relationships",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "N:N associate + post-load setLookup. HTTP 412 (association already exists) is short-circuited to success per design §8.",
+    "annotations": ["opex-integration", "v1", "inbound"],
+    "parameters": {
+      "entityKey":     { "type": "String" },
+      "runId":         { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":    { "type": "String" },
+      "relationships": { "type": "Array",  "defaultValue": [] },
+      "postLoadActions": { "type": "Array", "defaultValue": [] },
+      "dataverseBaseUrl": { "type": "String", "defaultValue": "https://opex-dev.crm.dynamics.com" }
+    },
+    "variables": {
+      "associatedCount":      { "type": "Integer", "defaultValue": 0 },
+      "alreadyExistsCount":   { "type": "Integer", "defaultValue": 0 },
+      "associateFailedCount": { "type": "Integer", "defaultValue": 0 }
+    },
+    "activities": [
+      {
+        "name": "ForEach_Relationship",
+        "type": "ForEach",
+        "typeProperties": {
+          "items": { "value": "@pipeline().parameters.relationships", "type": "Expression" },
+          "isSequential": true,
+          "activities": [
+            {
+              "name": "Lookup_AssocRows",
+              "type": "Lookup",
+              "policy": { "timeout": "0.00:30:00", "retry": 3, "retryIntervalInSeconds": 30 },
+              "typeProperties": {
+                "source": {
+                  "type": "ParquetSource",
+                  "storeSettings": { "type": "AzureBlobFSReadSettings", "recursive": false }
+                },
+                "dataset": {
+                  "referenceName": "ds_adls_parquet",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "folder":   "@concat('audit/intermediate/', pipeline().parameters.runId, '/nn_', item().relationshipSchemaName)",
+                    "fileName": "*.parquet"
+                  }
+                },
+                "firstRowOnly": false
+              }
+            },
+            {
+              "name": "ForEach_AssocRow",
+              "type": "ForEach",
+              "dependsOn": [{ "activity": "Lookup_AssocRows", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": {
+                "items": { "value": "@activity('Lookup_AssocRows').output.value", "type": "Expression" },
+                "isSequential": false,
+                "batchCount": 10,
+                "activities": [
+                  {
+                    "name": "WebActivity_Associate",
+                    "type": "WebActivity",
+                    "policy": { "timeout": "0.00:30:00", "retry": 5, "retryIntervalInSeconds": 30, "secureInput": false, "secureOutput": false },
+                    "typeProperties": {
+                      "url":    "@concat(pipeline().parameters.dataverseBaseUrl, '/api/data/v9.2/', item().primaryEntity, '(', item().primaryId, ')/', item().relationshipSchemaName, '/$ref')",
+                      "method": "POST",
+                      "headers": {
+                        "Content-Type": "application/json",
+                        "MSCRM.SuppressDuplicateDetection": "true"
+                      },
+                      "body": "@concat('{\"@odata.id\":\"', pipeline().parameters.dataverseBaseUrl, '/api/data/v9.2/', item().relatedSet, '(', item().relatedId, ')\"}')",
+                      "authentication": {
+                        "type": "MSI",
+                        "resource": "@pipeline().parameters.dataverseBaseUrl"
+                      }
+                    }
+                  },
+                  {
+                    "name": "If_AssocAlreadyExists",
+                    "type": "IfCondition",
+                    "dependsOn": [{ "activity": "WebActivity_Associate", "dependencyConditions": ["Failed"] }],
+                    "typeProperties": {
+                      "expression": {
+                        "value": "@or(contains(coalesce(activity('WebActivity_Associate').error.message, ''), '412'), contains(coalesce(activity('WebActivity_Associate').error.message, ''), 'already exists'))",
+                        "type": "Expression"
+                      },
+                      "ifTrueActivities": [
+                        {
+                          "name": "Append_AlreadyExists",
+                          "type": "AppendVariable",
+                          "typeProperties": { "variableName": "alreadyExistsCount", "value": 1 }
+                        }
+                      ],
+                      "ifFalseActivities": [
+                        {
+                          "name": "Append_AssocFailed",
+                          "type": "AppendVariable",
+                          "typeProperties": { "variableName": "associateFailedCount", "value": 1 }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "ForEach_PostLoadAction",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "ForEach_Relationship", "dependencyConditions": ["Succeeded", "Failed"] }],
+        "typeProperties": {
+          "items": { "value": "@pipeline().parameters.postLoadActions", "type": "Expression" },
+          "isSequential": true,
+          "activities": [
+            {
+              "name": "Lookup_PostLoadRows",
+              "type": "Lookup",
+              "policy": { "timeout": "0.00:30:00", "retry": 3, "retryIntervalInSeconds": 30 },
+              "typeProperties": {
+                "source": {
+                  "type": "ParquetSource",
+                  "storeSettings": { "type": "AzureBlobFSReadSettings" }
+                },
+                "dataset": {
+                  "referenceName": "ds_adls_parquet",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "folder":   "@concat('audit/intermediate/', pipeline().parameters.runId, '/postload')",
+                    "fileName": "@concat(item().targetEntity, '_', item().targetLookupField, '.parquet')"
+                  }
+                },
+                "firstRowOnly": false
+              }
+            },
+            {
+              "name": "ForEach_UpdateRow",
+              "type": "ForEach",
+              "dependsOn": [{ "activity": "Lookup_PostLoadRows", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": {
+                "items": { "value": "@activity('Lookup_PostLoadRows').output.value", "type": "Expression" },
+                "isSequential": false,
+                "batchCount": 4,
+                "activities": [
+                  {
+                    "name": "WebActivity_PatchTargetEntity",
+                    "type": "WebActivity",
+                    "policy": { "timeout": "0.00:30:00", "retry": 5, "retryIntervalInSeconds": 30 },
+                    "typeProperties": {
+                      "url":    "@concat(pipeline().parameters.dataverseBaseUrl, '/api/data/v9.2/', item().targetEntitySet, '(', item().targetId, ')')",
+                      "method": "PATCH",
+                      "headers": { "Content-Type": "application/json" },
+                      "body":   "@concat('{\"', item().targetLookupField, '@odata.bind\":\"/', item().relatedEntitySet, '(', item().valueFromSelf, ')\"}')",
+                      "authentication": {
+                        "type": "MSI",
+                        "resource": "@pipeline().parameters.dataverseBaseUrl"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "ForEach_PostLoadAction", "dependencyConditions": ["Succeeded", "Failed"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName",        "value": "pl_load_relationships" },
+              { "name": "entityKey",           "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",               "value": "@pipeline().parameters.runId" },
+              { "name": "status",              "value": "Success" },
+              { "name": "completedAt",         "value": "@utcNow()" },
+              { "name": "alreadyExistsCount",  "value": "@length(variables('alreadyExistsCount'))" },
+              { "name": "associateFailedCount", "value": "@length(variables('associateFailedCount'))" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_load_relationships.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_load_relationships.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/inbound" }
+  }
+}

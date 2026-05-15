@@ -1,0 +1,84 @@
+# Work Items — D365 F&O (flat, two-level hierarchy)
+# Level 1 = Requirement/Epic  (one per FDD requirement)
+# Level 2 = Object Task       (one per X++ object, keyed by Object-ID)
+#
+# IMPORTANT: Never overwrite an existing uid or a non-null alm-id.
+# uid is the permanent correlation key between this file and the ALM tool.
+
+metadata:
+  requirement: ""           # requirement-name (folder key)
+  fdd-path: ""              # docs/{req}/fdd.md
+  tdd-path: ""              # docs/{req}/tdd.md
+  plan-path: ""             # plans/{req}/plan.md
+  plan-status: ""           # PENDING REVIEW | PLAN APPROVED | NEEDS REWORK
+  alm-tool: ""              # from constitution/10-alm-configuration.md
+  created: ""               # YYYY-MM-DD
+  total-objects: 0
+
+work-items:
+
+  # ── Level 1: Requirement / Epic ────────────────────────────────────────────
+
+  - uid: "{requirement-name}-L1"
+    alm-id: null
+    level: 1
+    type: Epic
+    title: "{Requirement display name}"
+    description: "Implement {requirement-name} per approved FDD and TDD."
+    priority: 2
+    status: "To Do"
+    children:
+      - "{requirement-name}-EXT-001"
+      # add all Object-IDs here
+
+  # ── Level 2: Object Tasks ──────────────────────────────────────────────────
+
+  - uid: "{requirement-name}-EXT-001"
+    alm-id: null
+    level: 2
+    type: Task
+    parent-uid: "{requirement-name}-L1"
+    object-id: "EXT-001"
+    object-category: "Extensions"
+    object-type: "Table Extension"       # from 32-type catalogue
+    object-name: "<TableName>.Extension"
+    module: ""                           # module code, e.g. AR / PO / WHS
+    complexity: "Simple"                 # Very Simple / Simple / Medium / Complex / Very Complex
+    t-shirt: "S"                         # XS / S / M / L / XL
+    story-points: 1                      # XS=0.5  S=1  M=3  L=8  XL=20
+    fr-refs: []                          # FDD Rule-IDs this object implements, e.g. [BR-001, BR-002]
+    fdd-ref: "Section 10"               # FDD field mapping section
+    tdd-ref: "Section 5.4.4"            # TDD architecture sub-section
+    depends-on: []                       # list of Object-IDs that must be done first
+    priority: 2
+    status: "Not Started"               # Not Started / In Progress / Done / Blocked
+    impl-doc-path: null                  # set by /implement
+    title: "EXT-001 — {ObjectName}: {brief description}"
+    description: ""
+    tags: []
+
+  - uid: "{requirement-name}-EXT-002"
+    alm-id: null
+    level: 2
+    type: Task
+    parent-uid: "{requirement-name}-L1"
+    object-id: "EXT-002"
+    object-category: "Extensions"
+    object-type: "New Class"
+    object-name: "AVA_<ClassName>"
+    module: ""
+    complexity: "Medium"
+    t-shirt: "M"
+    story-points: 3
+    fr-refs:
+      - "BR-001"
+    fdd-ref: "Section 11"
+    tdd-ref: "Section 5.6.1"
+    depends-on:
+      - "EXT-001"
+    priority: 2
+    status: "Not Started"
+    impl-doc-path: null
+    title: "EXT-002 — {ObjectName}: {brief description}"
+    description: ""
+    tags: []

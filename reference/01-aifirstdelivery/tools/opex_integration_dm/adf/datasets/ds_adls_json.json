@@ -1,0 +1,34 @@
+{
+  "name": "ds_adls_json",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "type": "Json",
+    "description": "Generic JSON dataset on ADLS. Used to read /config/ files at pipeline start and to write /audit/checkpoints, /audit/watermarks, /audit/wave_runs.",
+    "annotations": ["opex-integration", "v1"],
+    "linkedServiceName": {
+      "referenceName": "ls_adls",
+      "type": "LinkedServiceReference",
+      "parameters": {
+        "url":                  "@dataset().adlsUrl",
+        "accountKeySecretName": "@dataset().adlsAccountKeySecretName"
+      }
+    },
+    "parameters": {
+      "container":                { "type": "String", "defaultValue": "opex-integration" },
+      "folder":                   { "type": "String" },
+      "fileName":                 { "type": "String" },
+      "adlsUrl":                  { "type": "String", "defaultValue": "https://stopexdev.dfs.core.windows.net" },
+      "adlsAccountKeySecretName": { "type": "String", "defaultValue": "kv-adls-accountkey" }
+    },
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileSystem": "@dataset().container",
+        "folderPath": "@dataset().folder",
+        "fileName":   "@dataset().fileName"
+      },
+      "encodingName": "UTF-8"
+    },
+    "schema": {}
+  }
+}

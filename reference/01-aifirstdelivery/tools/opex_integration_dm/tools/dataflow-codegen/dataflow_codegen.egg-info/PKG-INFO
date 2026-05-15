@@ -1,0 +1,87 @@
+Metadata-Version: 2.4
+Name: dataflow-codegen
+Version: 0.1.0
+Summary: Generates ADF Mapping Data Flow ARM JSON from entity-mapping configs.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: click>=8.1.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4.0; extra == "dev"
+
+# dataflow-codegen
+
+Generates ADF Mapping Data Flow ARM JSON from each entity's config in `/config/entities/`. The output goes to `/adf/dataflows/generated/` and is committed to source control so the diff between a config change and its Data Flow consequence is reviewable.
+
+## Why codegen and not runtime composition?
+
+ADF Mapping Data Flow is **statically defined** in ARM JSON — runtime parameters can change values inside expressions but cannot add/remove transformation nodes based on config. The framework is metadata-driven, so the data flows have to be **generated from configs at deploy time** rather than interpreted at runtime. This tool is that codegen step.
+
+## Quick start
+
+```bash
+cd tools/dataflow-codegen
+python -m pip install -e .
+
+# from repo root
+dataflow-codegen --config-root config --out-dir adf/dataflows/generated
+```
+
+To regenerate just one entity:
+
+```bash
+dataflow-codegen --entity customer
+```
+
+## CLI
+
+```
+dataflow-codegen [--config-root DIR] [--out-dir DIR] [--entity NAME]
+
+  --config-root DIR   Root of the /config/ tree (default: ./config)
+  --out-dir DIR       Where to write generated ARM JSON (default: ./adf/dataflows/generated)
+  --entity NAME       Generate for one entity only; default is all entities
+```
+
+## Output
+
+One ARM JSON per entity in scope:
+
+- `df_transform_customer_inbound.json`
+- `df_transform_site_inbound.json`
+- `df_transform_contact_inbound.json`
+
+Each file is a complete `Microsoft.DataFactory/factories/dataflows` resource, ready for ADF to publish. The data flow's transformation graph lives in `properties.typeProperties.scriptLines`.
+
+## What's in v1
+
+- **All 10 transform types**: `direct`, `concat`, `split`, `conditional`, `map`, `choice`, `state`, `yesNo`, `dateTime`, `lookup`.
+- **Normalize + alias** for `lookup`, `choice`, `state` per the architectural spec §3.3.
+- **One master source per distinct reference table** — automatic dedup of broadcast streams.
+- **MDF expression syntax verified** against [docs.microsoft.com](https://learn.microsoft.com/azure/data-factory/data-flow-expression-functions). No phantom functions (the previous draft's `assignAs`, `mapLookup`, `toError`, etc. are gone).
+
+## What's in v2
+
+- Field-level validation routing to `sinkTransformErrors` via a conditional split on `__row_valid`.
+- Alias-suggestion sink (`sinkAliasSuggestions`) — emitted only when at least one field configures `onMissing: suggestion`.
+- Outbound data flow generator (`df_transform_<entity>_outbound`).
+- Master broadcast threshold lookup against `/audit/master_cache_state.json` to pick `broadcast: 'left'` vs `'auto'` per master.
+
+## Tests
+
+```bash
+python -m pip install -e ".[dev]"
+pytest -v
+```
+
+Tests verify each transform template emits valid MDF syntax and that the generator produces a working ARM JSON for all three shipped entities. The "no phantom MDF functions" guardrail test fails if `assignAs(`, `mapLookup(`, or `toError(` ever creep back in.
+
+## Recompilation triggers (when CI should regenerate)
+
+| Trigger | Action |
+| --- | --- |
+| `/config/entities/<X>.json` changes | Regenerate just X via `--entity X` |
+| `/config/aliases/<file>.json` changes | Regenerate every entity that references that alias file |
+| `/config/_project.json` changes | Regenerate **all** entities (project-level defaults affect codegen) |
+| `tools/dataflow-codegen/` changes (engine bump) | Regenerate all entities |
+
+A dependency manifest at `/config/_codegen_dependencies.json` (auto-emitted) records which configs each generated data flow depends on, so CI can diff checksums.

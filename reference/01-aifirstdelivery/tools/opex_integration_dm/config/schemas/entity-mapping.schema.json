@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "opex-integration/entity-mapping.schema.json",
+  "title": "Per-entity mapping configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entityKey", "direction", "source", "target", "fields"],
+  "properties": {
+    "$schemaVersion": { "type": "string", "enum": ["1"] },
+    "entityKey": { "type": "string", "pattern": "^[a-z][a-z0-9_]{2,40}$" },
+    "direction": { "enum": ["inbound", "outbound", "bidirectional"] },
+    "source":    { "$ref": "#/$defs/fileEndpoint" },
+    "target":    { "$ref": "#/$defs/dataverseEndpoint" },
+    "dedup":     { "$ref": "#/$defs/dedup" },
+    "dateTime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "defaultTimeZone": { "type": "string", "default": "UTC" },
+        "format":          { "type": "string", "default": "yyyy-MM-dd HH:mm:ss" }
+      }
+    },
+    "lookups": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "createMissingDefault": { "type": "boolean", "enum": [false] }
+      }
+    },
+    "fields":          { "type": "array", "items": { "$ref": "#/$defs/field" }, "minItems": 1 },
+    "relationships":   { "type": "array", "items": { "$ref": "#/$defs/relationship" } },
+    "postLoadActions": { "type": "array", "items": { "$ref": "#/$defs/postLoadAction" } }
+  },
+  "allOf": [
+    {
+      "if": { "type": "object", "required": ["direction"], "properties": { "direction": { "const": "inbound" } } },
+      "then": {
+        "properties": {
+          "source": { "type": "object", "required": ["inbound"] },
+          "target": { "type": "object", "required": ["inbound"] }
+        }
+      }
+    },
+    {
+      "if": { "type": "object", "required": ["direction"], "properties": { "direction": { "const": "outbound" } } },
+      "then": {
+        "properties": {
+          "source": { "type": "object", "required": ["outbound"] },
+          "target": { "type": "object", "required": ["outbound"] }
+        }
+      }
+    },
+    {
+      "if": { "type": "object", "required": ["direction"], "properties": { "direction": { "const": "bidirectional" } } },
+      "then": {
+        "properties": {
+          "source": { "type": "object", "required": ["inbound", "outbound"] },
+          "target": { "type": "object", "required": ["inbound", "outbound"] }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "fileEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "format", "sftpLinkedService"],
+      "properties": {
+        "system":            { "const": "SFTP" },
+        "format":            { "enum": ["csv", "xlsx"] },
+        "sftpLinkedService": { "type": "string", "pattern": "^ls_sftp_[a-z0-9_]+$" },
+        "delimiter":         { "type": "string", "minLength": 1, "maxLength": 4, "default": "," },
+        "encoding":          { "enum": ["utf-8", "utf-8-bom", "windows-1252", "iso-8859-1"], "default": "utf-8" },
+        "headerRow":         { "type": "integer", "minimum": 1, "default": 1 },
+        "inbound": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pathPattern"],
+          "properties": {
+            "pathPattern":     { "type": "string", "minLength": 1 },
+            "worksheet":       { "type": ["string", "null"] },
+            "archiveTo":       { "type": "string" },
+            "onMultipleFiles": { "enum": ["concat", "latestOnly", "fail"], "default": "concat" }
+          }
+        },
+        "outbound": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pathPattern"],
+          "properties": {
+            "pathPattern":       { "type": "string" },
+            "worksheet":         { "type": ["string", "null"] },
+            "writeHeaderRow":    { "type": "boolean", "default": true },
+            "emptyFileBehavior": { "enum": ["writeHeaderOnly", "skipFile", "fail"], "default": "writeHeaderOnly" }
+          }
+        }
+      }
+    },
+    "dataverseEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "entityLogicalName", "alternateKey"],
+      "properties": {
+        "system":            { "const": "Dataverse" },
+        "entityLogicalName": { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$" },
+        "alternateKey":      { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "inbound": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "writeMode":     { "enum": ["upsert", "create", "update"], "default": "upsert" },
+            "bypassPlugins": { "type": "boolean", "default": false }
+          }
+        },
+        "outbound": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["query"],
+          "properties": {
+            "query": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode"],
+              "properties": {
+                "mode":        { "enum": ["odataFilter", "fetchXml", "savedView"] },
+                "odataFilter": { "type": ["string", "null"] },
+                "fetchXml":    { "type": ["string", "null"] },
+                "savedView":   { "type": ["string", "null"] },
+                "orderBy":     { "type": "string" },
+                "pageSize":    { "type": "integer", "minimum": 100, "maximum": 50000, "default": 5000 },
+                "maxRows":     { "type": ["integer", "null"], "minimum": 1 }
+              }
+            },
+            "delta": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled":               { "type": "boolean", "default": true },
+                "watermarkStore":        { "type": "string" },
+                "watermarkField":        { "type": "string" },
+                "initialFromUtc":        { "type": "string", "format": "date-time" },
+                "fullModeOverrideParam": { "type": "string", "default": "forceFull" }
+              }
+            },
+            "expand": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["navigationProperty", "select"],
+                "properties": {
+                  "navigationProperty": { "type": "string" },
+                  "select":             { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "dedup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled":         { "type": "boolean", "default": true },
+        "checksumColumns": { "type": "array", "items": { "type": "string" } },
+        "onDuplicate":     { "enum": ["keepLatest", "keepFirst", "fail"], "default": "keepLatest" }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "target", "targetType", "transform"],
+      "properties": {
+        "source":          { "type": "string", "minLength": 1 },
+        "sourceType":      { "enum": ["text", "int", "decimal", "date", "datetime", "bool"] },
+        "target":          { "type": "string", "minLength": 1 },
+        "targetType":      { "enum": ["text", "int", "decimal", "datetime", "dateonly", "bool", "choice", "state", "lookup"] },
+        "maxLength":       { "type": ["integer", "null"], "minimum": 1 },
+        "mandatory":       { "type": "boolean", "default": false },
+        "defaultValue":    {},
+        "validations":     { "type": "array", "items": { "type": "string" } },
+        "inboundInclude":  { "type": "boolean", "default": true },
+        "outboundInclude": { "type": "boolean", "default": true },
+        "loadPhase":       { "type": "integer", "enum": [1, 2], "default": 1 },
+        "transform":       { "$ref": "#/$defs/transform" }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "required": ["type"],
+      "$comment": "Discriminated union over `type`. The oneOf form is the standard 2020-12 pattern for tagged unions and works in Ajv strict, JsonSchema.Net, and python-jsonschema.",
+      "oneOf": [
+        { "additionalProperties": false, "properties": { "type": { "const": "direct" }, "forward": { "type": "object" }, "reverse": { "type": "object" } } },
+        { "additionalProperties": false, "required": ["type", "forward", "reverse"], "properties": { "type": { "const": "concat" }, "forward": { "$ref": "#/$defs/tfConcatForward" }, "reverse": { "$ref": "#/$defs/tfConcatReverse" } } },
+        { "additionalProperties": false, "required": ["type", "forward", "reverse"], "properties": { "type": { "const": "split" }, "forward": { "$ref": "#/$defs/tfSplitForward" }, "reverse": { "$ref": "#/$defs/tfSplitReverse" } } },
+        { "additionalProperties": false, "required": ["type", "forward"],            "properties": { "type": { "const": "conditional" }, "forward": { "$ref": "#/$defs/tfConditionalForward" }, "reverse": { "$ref": "#/$defs/tfConditionalReverse" } } },
+        { "additionalProperties": false, "required": ["type", "forward"],            "properties": { "type": { "const": "map" }, "forward": { "$ref": "#/$defs/tfMapForward" }, "reverse": { "type": "object" } } },
+        { "additionalProperties": false, "required": ["type", "forward"],            "properties": { "type": { "const": "choice" }, "forward": { "$ref": "#/$defs/tfChoiceForward" }, "reverse": { "type": "object" } } },
+        { "additionalProperties": false, "required": ["type", "forward"],            "properties": { "type": { "const": "state" }, "forward": { "$ref": "#/$defs/tfStateForward" }, "reverse": { "type": "object" } } },
+        { "additionalProperties": false, "required": ["type", "forward"],            "properties": { "type": { "const": "yesNo" }, "forward": { "$ref": "#/$defs/tfYesNoForward" }, "reverse": { "type": "object" } } },
+        { "additionalProperties": false, "required": ["type", "forward"],            "properties": { "type": { "const": "dateTime" }, "forward": { "$ref": "#/$defs/tfDateTimeForward" }, "reverse": { "type": "object" } } },
+        { "additionalProperties": false, "required": ["type", "forward"],            "properties": { "type": { "const": "lookup" }, "forward": { "$ref": "#/$defs/tfLookupForward" }, "reverse": { "type": "object" } } }
+      ]
+    },
+    "tfConcatForward": {
+      "type": "object", "additionalProperties": false,
+      "required": ["inputs", "separator", "target"],
+      "properties": {
+        "inputs":    { "type": "array", "items": { "type": "string" }, "minItems": 2 },
+        "separator": { "type": "string" },
+        "target":    { "type": "string" }
+      }
+    },
+    "tfConcatReverse": {
+      "type": "object", "additionalProperties": false,
+      "required": ["input", "regex"],
+      "properties": {
+        "input": { "type": "string" },
+        "regex": { "type": "string" }
+      }
+    },
+    "tfSplitForward": {
+      "type": "object", "additionalProperties": false,
+      "required": ["input", "regex", "outputs"],
+      "properties": {
+        "input":   { "type": "string" },
+        "regex":   { "type": "string" },
+        "outputs": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      }
+    },
+    "tfSplitReverse": {
+      "type": "object", "additionalProperties": false,
+      "required": ["inputs", "separator"],
+      "properties": {
+        "inputs":    { "type": "array", "items": { "type": "string" }, "minItems": 2 },
+        "separator": { "type": "string" }
+      }
+    },
+    "tfConditionalForward": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rules"],
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["when", "value"],
+            "properties": { "when": { "type": "string" }, "value": {} }
+          },
+          "minItems": 1
+        },
+        "default": {}
+      }
+    },
+    "tfConditionalReverse": {
+      "type": "object", "additionalProperties": false,
+      "required": ["writes"],
+      "properties": {
+        "writes": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["column", "value", "when"],
+            "properties": {
+              "column":    { "type": "string" },
+              "value":     {},
+              "when":      { "type": "string" },
+              "elseValue": {}
+            }
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "tfMapForward": {
+      "type": "object", "additionalProperties": false,
+      "required": ["map"],
+      "properties": {
+        "map":           { "type": "object", "additionalProperties": true },
+        "default":       {},
+        "caseSensitive": { "type": "boolean", "default": true },
+        "onMissing":     { "enum": ["fail", "useDefault", "passThrough"], "default": "fail" }
+      }
+    },
+    "tfChoiceForward": {
+      "type": "object", "additionalProperties": false,
+      "required": ["map"],
+      "properties": {
+        "map":         { "type": "object", "additionalProperties": { "type": "integer" } },
+        "default":     { "type": ["integer", "null"] },
+        "onMissing":   { "enum": ["fail", "useDefault", "passThrough"], "default": "fail" },
+        "normalize":   { "$ref": "#/$defs/normalizeRules" },
+        "aliases":     { "type": "object", "additionalProperties": { "type": "string" } },
+        "aliasesFile": { "type": "string", "pattern": "^/config/aliases/[a-z0-9_]+__[a-z0-9_]+\\.json$" },
+        "onAliasMiss": { "enum": ["passThrough", "suggestion", "error"], "default": "passThrough" }
+      }
+    },
+    "tfStateForward": {
+      "type": "object", "additionalProperties": false,
+      "required": ["map"],
+      "properties": {
+        "map":     { "type": "object", "additionalProperties": { "type": "integer" } },
+        "default": { "type": ["integer", "null"] }
+      }
+    },
+    "tfYesNoForward": {
+      "type": "object", "additionalProperties": false,
+      "required": ["trueValues", "falseValues"],
+      "properties": {
+        "trueValues":  { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "falseValues": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "outputTrue":  { "type": "boolean", "default": true },
+        "outputFalse": { "type": "boolean", "default": false }
+      }
+    },
+    "tfDateTimeForward": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "sourceTz":     { "type": "string", "default": "UTC" },
+        "targetTz":     { "type": "string", "default": "UTC" },
+        "inputFormat":  { "type": "string", "default": "yyyy-MM-dd HH:mm:ss" },
+        "outputFormat": { "type": "string", "default": "yyyy-MM-ddTHH:mm:ssZ" }
+      }
+    },
+    "tfLookupForward": {
+      "type": "object", "additionalProperties": false,
+      "required": ["referenceTable", "entitySetName", "navigationProperty", "refField"],
+      "properties": {
+        "referenceTable":     { "type": "string" },
+        "entitySetName":      { "type": "string" },
+        "navigationProperty": { "type": "string" },
+        "refField":           { "type": "string" },
+        "primaryIdField":     { "type": "string" },
+        "matchPolicy":        { "enum": ["exact", "caseInsensitive", "trim"], "default": "exact" },
+        "createIfMissing":    {
+          "type": "boolean", "enum": [false], "default": false,
+          "$comment": "v1: must be false. Auto-create deferred to v2 (V028)."
+        },
+        "onMissing":      { "enum": ["error", "useDefault", "passNull", "suggestion"], "default": "error" },
+        "nullBehavior":   { "enum": ["clear", "skip"], "default": "clear" },
+        "default":        {},
+        "createDefaults": { "type": "object" },
+        "cacheKey":       { "type": "string" },
+        "filter":         { "type": "string" },
+        "targetMode":     { "enum": ["system", "impersonate", "shadowField"], "default": "system" },
+        "normalize":      { "$ref": "#/$defs/normalizeRules" },
+        "aliases":        { "type": "object", "additionalProperties": { "type": "string" } },
+        "aliasesFile":    { "type": "string", "pattern": "^/config/aliases/[a-z0-9_]+__[a-z0-9_]+\\.json$" },
+        "onAliasMiss":    { "enum": ["passThrough", "suggestion", "error"], "default": "passThrough" }
+      }
+    },
+    "normalizeRules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(trim|collapseWhitespace|toLowerCase|toUpperCase|stripPunctuation|stripDiacritics|removeRegex:.+)$"
+      }
+    },
+    "relationship": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "relationshipSchemaName", "primaryEntity", "primaryKey", "relatedEntity", "relatedKey"],
+      "properties": {
+        "type":                   { "const": "NN" },
+        "relationshipSchemaName": { "type": "string" },
+        "primaryEntity":          { "type": "string" },
+        "primaryKey": {
+          "type": "object", "additionalProperties": false,
+          "required": ["field", "source"],
+          "properties": { "field": { "type": "string" }, "source": { "type": "string" } }
+        },
+        "relatedEntity": { "type": "string" },
+        "relatedKey": {
+          "type": "object", "additionalProperties": false,
+          "required": ["field", "source"],
+          "properties": { "field": { "type": "string" }, "source": { "type": "string" } }
+        },
+        "inbound": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "writeMode": { "enum": ["associate", "disassociate", "upsertAssociation"], "default": "associate" }
+          }
+        },
+        "outbound": {
+          "type": "object", "additionalProperties": false,
+          "required": ["exportMode", "filePattern", "columns"],
+          "properties": {
+            "exportMode":  { "const": "separateFile" },
+            "filePattern": { "type": "string" },
+            "columns":     { "type": "array", "items": { "type": "string" }, "minItems": 2 }
+          }
+        }
+      }
+    },
+    "postLoadAction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type":              { "enum": ["setLookup"] },
+        "condition":         { "type": "string" },
+        "targetEntity":      { "type": "string" },
+        "targetLookupField": { "type": "string" },
+        "valueFromSelf":     { "type": "string" }
+      }
+    }
+  }
+}

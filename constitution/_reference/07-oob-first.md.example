@@ -1,0 +1,45 @@
+<!--
+Scaffolding starter for agents/{agent}/constitution/07-oob-first.md.
+OOB-first decision tree with platform-specific examples.
+-->
+---
+agent: {agent-slug}
+version: 1.0.0
+last-reviewed: YYYY-MM-DD
+owner: platform
+---
+
+# OOB-First Principle — {Agent Name}
+
+## Decision tree (applied per requirement)
+
+```
+Can the requirement be met by:
+
+  1. Out of the Box capability?     →  Use OOB.       Fitment: "Out of the Box"
+  2. Configuration (declarative)?    →  Use Config.    Fitment: "Configuration"
+  3. Customisation (custom code)?    →  Customise.     Fitment: "Customization"
+
+For each step, document the OOB / Config option you considered and rejected
+(if you skipped to a lower level). The rationale lives in §8.2 OOB-first Decision Log
+of the FDD.
+```
+
+## Project-level overrides
+
+`projects/{p}/project.config.yaml oobOverrides.*` can steer the default at the platform level:
+
+| Override key | Effect |
+|---|---|
+| `businessRules: prefer-js` | Prefer JavaScript over business rules when both could meet the requirement |
+| `businessRules: prefer-business-rule` | Prefer business rules (the platform default) |
+| `complexPlugin: prefer-azure-function` | Push complex CE plugins to Azure Functions (offloads compute, simplifies CE-side deployment) |
+| `complexPlugin: prefer-plugin` | Keep complex logic as a CE plugin |
+
+## Platform-specific OOB inventory
+
+If this platform has a known OOB capability catalog (e.g., CE's first-party apps, F&O's localisation packs, Power BI's content packs), enumerate the categories here so reviewers know what "OOB" actually covers.
+
+## OOB-first decision log
+
+Every spec → plan handoff records the OOB-first decision per requirement in §8.2 of the FDD. The log is reviewed at `/clarify` time; if the decision changes, the log is updated and the rationale captured.

@@ -1,0 +1,34 @@
+<!--
+Scaffolding starter for agents/{agent}/constitution/02-nfr.md.
+NFR shape with platform-specific targets.
+-->
+---
+agent: {agent-slug}
+version: 1.0.0
+last-reviewed: YYYY-MM-DD
+owner: platform
+---
+
+# Non-Functional Requirements — {Agent Name}
+
+## Default targets
+
+Inherited from `projects/{p}/project.config.yaml nfr.*` unless overridden per feature.
+
+| NFR | Default | Notes |
+|---|---|---|
+| P95 response time | 2000 ms | Per `project.config.yaml nfr.responseTimeMsP95` |
+| Availability | 99.5% | Per `project.config.yaml nfr.availability` |
+| Error rate | < 0.5% | Per `project.config.yaml nfr.errorRate` |
+
+## Platform-specific NFRs
+
+If this platform has unique non-functional concerns (e.g., F&O batch throughput targets, integration latency by pattern, Power BI dataset size limits), document them here with their default targets and how they're measured.
+
+## Override path
+
+Per-feature NFRs can be declared in the feature's spec under §6 Non-Functional Requirements. The spec's NFRs override the project defaults for that feature.
+
+## Verification
+
+Each NFR target should be associated with a verification approach (load test, monitoring dashboard, run-book check). When the FDD is authored, §5.4 NFR Mapping per Feature links each functional requirement to its NFR targets.

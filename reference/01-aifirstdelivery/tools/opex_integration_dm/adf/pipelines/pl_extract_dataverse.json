@@ -1,0 +1,184 @@
+{
+  "name": "pl_extract_dataverse",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Outbound — Dataverse → /raw/<entityKey>/<runId>/. Reads watermark, substitutes {lastSyncedAt}/{runStartUtc}, runs Copy with OData $filter / FetchXML / saved view.",
+    "annotations": ["opex-integration", "v1", "outbound"],
+    "parameters": {
+      "entityKey":          { "type": "String" },
+      "runId":              { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":         { "type": "String" },
+      "targetEntity":       { "type": "String" },
+      "queryMode":          { "type": "String", "defaultValue": "odataFilter" },
+      "queryOdataFilter":   { "type": "String", "defaultValue": "" },
+      "queryFetchXml":      { "type": "String", "defaultValue": "" },
+      "querySavedView":     { "type": "String", "defaultValue": "" },
+      "queryOrderBy":       { "type": "String", "defaultValue": "modifiedon asc" },
+      "queryPageSize":      { "type": "Int",    "defaultValue": 5000 },
+      "selectColumns":      { "type": "String", "defaultValue": "" },
+      "initialFromUtc":     { "type": "String", "defaultValue": "2000-01-01T00:00:00Z" },
+      "watermarkField":     { "type": "String", "defaultValue": "modifiedon" },
+      "forceFull":          { "type": "Bool",   "defaultValue": false }
+    },
+    "variables": {
+      "lastSyncedAt":   { "type": "String" },
+      "resolvedFilter": { "type": "String" },
+      "rowsExtracted":  { "type": "Integer", "defaultValue": 0 }
+    },
+    "activities": [
+      {
+        "name": "GetMetadata_Watermark",
+        "type": "GetMetadata",
+        "policy": { "timeout": "0.00:02:00", "retry": 1, "retryIntervalInSeconds": 10 },
+        "typeProperties": {
+          "dataset": {
+            "referenceName": "ds_adls_json",
+            "type": "DatasetReference",
+            "parameters": {
+              "folder":   "audit/watermarks",
+              "fileName": "@concat(pipeline().parameters.entityKey, '.json')"
+            }
+          },
+          "fieldList": ["exists"]
+        }
+      },
+      {
+        "name": "If_WatermarkExists",
+        "type": "IfCondition",
+        "dependsOn": [{ "activity": "GetMetadata_Watermark", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "expression": {
+            "value": "@and(activity('GetMetadata_Watermark').output.exists, not(pipeline().parameters.forceFull))",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [
+            {
+              "name": "Lookup_Watermark",
+              "type": "Lookup",
+              "policy": { "timeout": "0.00:02:00", "retry": 2, "retryIntervalInSeconds": 10 },
+              "typeProperties": {
+                "source": { "type": "JsonSource", "storeSettings": { "type": "AzureBlobFSReadSettings" } },
+                "dataset": {
+                  "referenceName": "ds_adls_json",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "folder":   "audit/watermarks",
+                    "fileName": "@concat(pipeline().parameters.entityKey, '.json')"
+                  }
+                },
+                "firstRowOnly": true
+              }
+            },
+            {
+              "name": "SetVar_LastSyncedFromWatermark",
+              "type": "SetVariable",
+              "dependsOn": [{ "activity": "Lookup_Watermark", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": {
+                "variableName": "lastSyncedAt",
+                "value": "@activity('Lookup_Watermark').output.firstRow.lastSyncedAt"
+              }
+            }
+          ],
+          "ifFalseActivities": [
+            {
+              "name": "SetVar_LastSyncedFromInitial",
+              "type": "SetVariable",
+              "typeProperties": {
+                "variableName": "lastSyncedAt",
+                "value": "@pipeline().parameters.initialFromUtc"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "SetVar_ResolvedFilter",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "If_WatermarkExists", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "resolvedFilter",
+          "value": "@replace(replace(pipeline().parameters.queryOdataFilter, '{lastSyncedAt}', variables('lastSyncedAt')), '{runStartUtc}', formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:ssZ'))"
+        }
+      },
+      {
+        "name": "Copy_DataverseToRaw",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "SetVar_ResolvedFilter", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.02:00:00", "retry": 5, "retryIntervalInSeconds": 60 },
+        "typeProperties": {
+          "source": {
+            "type": "CommonDataServiceForAppsSource",
+            "query": "@if(equals(pipeline().parameters.queryMode, 'odataFilter'), concat('?$select=', pipeline().parameters.selectColumns, '&$filter=', variables('resolvedFilter'), '&$orderby=', pipeline().parameters.queryOrderBy), if(equals(pipeline().parameters.queryMode, 'fetchXml'), pipeline().parameters.queryFetchXml, concat('?savedQuery=', pipeline().parameters.querySavedView)))"
+          },
+          "sink": {
+            "type": "ParquetSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "ParquetWriteSettings" }
+          },
+          "enableStaging": false
+        },
+        "inputs": [{
+          "referenceName": "ds_dataverse",
+          "type": "DatasetReference",
+          "parameters": { "entityName": "@pipeline().parameters.targetEntity" }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_parquet",
+          "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('raw/', pipeline().parameters.entityKey, '/', pipeline().parameters.runId)",
+            "fileName": "data.parquet"
+          }
+        }]
+      },
+      {
+        "name": "SetVar_RowsExtracted",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "Copy_DataverseToRaw", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "rowsExtracted",
+          "value": "@string(activity('Copy_DataverseToRaw').output.rowsCopied)"
+        }
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "SetVar_RowsExtracted", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName",     "value": "pl_extract_dataverse" },
+              { "name": "entityKey",        "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",            "value": "@pipeline().parameters.runId" },
+              { "name": "status",           "value": "Success" },
+              { "name": "completedAt",      "value": "@utcNow()" },
+              { "name": "rowsExtracted",    "value": "@variables('rowsExtracted')" },
+              { "name": "lastSyncedAtUsed", "value": "@variables('lastSyncedAt')" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_extract_dataverse.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_extract_dataverse.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/outbound" }
+  }
+}

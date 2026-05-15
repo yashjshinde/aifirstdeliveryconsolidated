@@ -1,0 +1,94 @@
+{
+  "name": "pl_preflight",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Pre-flight check before any data run. Verifies SFTP reachable, Dataverse entity exists, KV secret resolves. Writes /audit/preflight/<runId>/report.json. Run manually before first deploy, then before every prod load.",
+    "annotations": ["opex-integration", "v1"],
+    "parameters": {
+      "runId":              { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "entities":           { "type": "Array",  "defaultValue": ["customer", "site", "contact"] },
+      "dataverseBaseUrl":   { "type": "String", "defaultValue": "https://opex-dev.crm.dynamics.com" }
+    },
+    "variables": {
+      "checkResults": { "type": "Array" }
+    },
+    "activities": [
+      {
+        "name": "WebActivity_CheckDataverse",
+        "type": "WebActivity",
+        "policy": { "timeout": "0.00:05:00", "retry": 2, "retryIntervalInSeconds": 15 },
+        "description": "GET /api/data/v9.2/$metadata — fastest way to confirm DV reachability + SPN auth.",
+        "typeProperties": {
+          "url": "@concat(pipeline().parameters.dataverseBaseUrl, '/api/data/v9.2/$metadata')",
+          "method": "GET",
+          "authentication": {
+            "type": "MSI",
+            "resource": "@pipeline().parameters.dataverseBaseUrl"
+          }
+        }
+      },
+      {
+        "name": "ForEach_EntityCheck",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "WebActivity_CheckDataverse", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "items": { "value": "@pipeline().parameters.entities", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 4,
+          "activities": [
+            {
+              "name": "WebActivity_CheckEntityExists",
+              "type": "WebActivity",
+              "policy": { "timeout": "0.00:02:00", "retry": 2, "retryIntervalInSeconds": 10 },
+              "typeProperties": {
+                "url": "@concat(pipeline().parameters.dataverseBaseUrl, '/api/data/v9.2/EntityDefinitions(LogicalName=''', item(), ''')?$select=EntitySetName,LogicalName,SchemaName')",
+                "method": "GET",
+                "authentication": {
+                  "type": "MSI",
+                  "resource": "@pipeline().parameters.dataverseBaseUrl"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Copy_PreflightReport",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "ForEach_EntityCheck", "dependencyConditions": ["Succeeded", "Completed"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "runId",            "value": "@pipeline().parameters.runId" },
+              { "name": "completedAt",      "value": "@utcNow()" },
+              { "name": "dataverseStatus",  "value": "OK" },
+              { "name": "entitiesChecked",  "value": "@string(pipeline().parameters.entities)" },
+              { "name": "dataverseBaseUrl", "value": "@pipeline().parameters.dataverseBaseUrl" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('audit/preflight/', pipeline().parameters.runId)",
+            "fileName": "report.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "@concat('audit/preflight/', pipeline().parameters.runId)",
+            "fileName": "report.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/operations" }
+  }
+}

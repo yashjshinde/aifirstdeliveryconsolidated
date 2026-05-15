@@ -1,0 +1,29 @@
+{
+  "name": "ds_sftp_xlsx",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "type": "Excel",
+    "description": "Excel files on SFTP. Worksheet selected via parameter.",
+    "annotations": ["opex-integration", "v1"],
+    "linkedServiceName": {
+      "referenceName": "ls_sftp_fusion",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "folderPath":       { "type": "String" },
+      "fileName":         { "type": "String", "defaultValue": "*.xlsx" },
+      "sheetName":        { "type": "String" },
+      "firstRowAsHeader": { "type": "Bool", "defaultValue": true }
+    },
+    "typeProperties": {
+      "location": {
+        "type": "SftpLocation",
+        "folderPath": "@dataset().folderPath",
+        "fileName":   "@dataset().fileName"
+      },
+      "sheetName":        "@dataset().sheetName",
+      "firstRowAsHeader": "@dataset().firstRowAsHeader"
+    },
+    "schema": []
+  }
+}

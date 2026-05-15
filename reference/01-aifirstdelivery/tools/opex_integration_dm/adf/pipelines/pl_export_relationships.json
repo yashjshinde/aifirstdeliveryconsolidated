@@ -1,0 +1,96 @@
+{
+  "name": "pl_export_relationships",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Outbound — extract Dataverse N:N intersect tables and emit one parquet per relationship under /staged-out/<entityKey>/<runId>/relationships/.",
+    "annotations": ["opex-integration", "v1", "outbound"],
+    "parameters": {
+      "entityKey":     { "type": "String" },
+      "runId":         { "type": "String", "defaultValue": "@pipeline().RunId" },
+      "configPath":    { "type": "String" },
+      "relationships": { "type": "Array",  "defaultValue": [] },
+      "deltaFromUtc":  { "type": "String", "defaultValue": "2000-01-01T00:00:00Z" },
+      "deltaField":    { "type": "String", "defaultValue": "modifiedon" }
+    },
+    "activities": [
+      {
+        "name": "ForEach_Relationship",
+        "type": "ForEach",
+        "typeProperties": {
+          "items": { "value": "@pipeline().parameters.relationships", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 2,
+          "activities": [
+            {
+              "name": "Copy_IntersectTable",
+              "type": "Copy",
+              "policy": { "timeout": "0.00:30:00", "retry": 3, "retryIntervalInSeconds": 30 },
+              "typeProperties": {
+                "source": {
+                  "type": "CommonDataServiceForAppsSource",
+                  "query": "@concat('<fetch top=\"50000\"><entity name=\"', item().relationshipSchemaName, '\"><filter><condition attribute=\"', pipeline().parameters.deltaField, '\" operator=\"ge\" value=\"', pipeline().parameters.deltaFromUtc, '\" /></filter></entity></fetch>')"
+                },
+                "sink": {
+                  "type": "ParquetSink",
+                  "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+                  "formatSettings": { "type": "ParquetWriteSettings" }
+                }
+              },
+              "inputs": [{
+                "referenceName": "ds_dataverse",
+                "type": "DatasetReference",
+                "parameters": { "entityName": "@item().relationshipSchemaName" }
+              }],
+              "outputs": [{
+                "referenceName": "ds_adls_parquet",
+                "type": "DatasetReference",
+                "parameters": {
+                  "folder":   "@concat('staged-out/', pipeline().parameters.entityKey, '/', pipeline().parameters.runId, '/relationships')",
+                  "fileName": "@concat(item().relationshipSchemaName, '.parquet')"
+                }
+              }]
+            }
+          ]
+        }
+      },
+      {
+        "name": "Copy_Checkpoint",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "ForEach_Relationship", "dependencyConditions": ["Succeeded", "Completed"] }],
+        "typeProperties": {
+          "source": {
+            "type": "JsonSource",
+            "additionalColumns": [
+              { "name": "pipelineName",      "value": "pl_export_relationships" },
+              { "name": "entityKey",         "value": "@pipeline().parameters.entityKey" },
+              { "name": "runId",             "value": "@pipeline().parameters.runId" },
+              { "name": "status",            "value": "Success" },
+              { "name": "completedAt",       "value": "@utcNow()" },
+              { "name": "relationshipsCount", "value": "@length(pipeline().parameters.relationships)" }
+            ]
+          },
+          "sink": {
+            "type": "JsonSink",
+            "storeSettings": { "type": "AzureBlobFSWriteSettings" },
+            "formatSettings": { "type": "JsonWriteSettings", "filePattern": "setOfObjects" }
+          }
+        },
+        "inputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_export_relationships.json"
+          }
+        }],
+        "outputs": [{
+          "referenceName": "ds_adls_json", "type": "DatasetReference",
+          "parameters": {
+            "folder":   "audit/checkpoints/@{pipeline().parameters.runId}",
+            "fileName": "pl_export_relationships.json"
+          }
+        }]
+      }
+    ],
+    "folder": { "name": "opex/outbound" }
+  }
+}
