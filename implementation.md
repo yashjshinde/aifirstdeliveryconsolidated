@@ -318,6 +318,415 @@ These don't fit cleanly into one phase — they run alongside:
 
 ## Entries
 
+### 2026-05-15-009 — Spec→Design→Implementation audit + pending-items review: 6 defects logged (DEFECT-003 through DEFECT-008); 2 resolved in-session; 4 queued (bk-030/031/032/033) + 1 status reclassification (bk-002)
+
+| Field | Value |
+|---|---|
+| **Kind** | audit + bugfix (intake + resolution) + design-update |
+| **Master-plan refs** | §22 (Critical Files), §23 (Verification), §25 (Topics Still To Be Detailed), §26 (Revision discipline) |
+| **Design doc refs** | [design/agents/integration.md](design/agents/integration.md) (referenced by DEFECT-003 fix), [design/09-orchestration-patterns.md § Pattern 2](design/09-orchestration-patterns.md) (referenced by DEFECT-004 reclassification), [design/agents/reporting.md](design/agents/reporting.md) (DEFECT-005), [design/13-chat-ui.md](design/13-chat-ui.md) (DEFECT-006), [design/agents/alm.md](design/agents/alm.md) (DEFECT-007), [design/adr/0009-solution-estimate-consolidated.md § Negative consequences](design/adr/0009-solution-estimate-consolidated.md) (DEFECT-008), [design/backlog.md](design/backlog.md) (status updates + 4 new entries) |
+| **ADR refs** | No new ADRs. Future ADRs may emerge for bk-031 (chat-ui SSE contract), bk-032 (Mermaid round-trip strategy). |
+| **Backlog refs** | bk-002 reclassified `queued` → `partial (5/6 covered)`; new entries bk-030 (reporting design depth), bk-031 (chat-ui SSE contract), bk-032 (ALM Mermaid strategy detail), bk-033 (VS rates for 8 reintroduced factors / R28 gap). Backlog summary updated: 33 total items (was 29), 18 done, 1 partial, 14 queued. |
+| **Files touched** | `agents/integration/README.md` (replaced 19-line stub with full What/How/Details README — DEFECT-003 resolution), `design/backlog.md` (bk-002 status reclassified + 4 new entries appended + Summary section refreshed with new totals), `implementation.md` (this entry) |
+| **Status** | done |
+
+**Summary.** User asked for (a) detailed Spec → Design → Implementation audit with defect logging + resolution, and (b) review of items marked "pending" in the implementation plan to validate accuracy. Three parallel audit agents (Explore subagents) covered: (1) Spec → Design coverage, (2) Design → Implementation coverage, (3) Pending-items vs disk reality. Findings synthesised; trust-but-verified against the actual files; 6 defects logged. **2 resolved in-session** (DEFECT-003 integration README; DEFECT-004 bk-002 status). **4 queued as new backlog items** (DEFECT-005 → bk-030; DEFECT-006 → bk-031; DEFECT-007 → bk-032; DEFECT-008 → bk-033). 9 of 11 pending-items audited had correctly-marked status; the lone outlier (bk-002) was reclassified.
+
+---
+
+#### Audit method
+
+Three parallel Explore agents dispatched, each with a bounded question + a strict <800-word report budget:
+
+1. **Spec → Design coverage** — read `reference/00-spec-driven-development-humble-muffin.md` (3472 lines) against the `design/` folder (17 core + 8 per-agent + 12 ADRs + 4 audit/report/backlog docs). Focus: §22 Critical Files, §23 Verification, §25 Topics Still To Be Detailed, §26 R1-R34 revisions, §7.1-§7.8 per-agent, §18 MCP groups, §4/§10 workflow gates.
+2. **Design → Implementation coverage** — read design docs against actual `agents/`, `schemas/`, `tools/`, `workflow.yaml`, `agents.yaml`. Focus: per-agent file completeness, agents.yaml ↔ folder presence, schemas mirroring, generated derivative manifest, MCP foundational groups, chat-ui structure, scaffold scripts, publish pipeline, solution-estimate post-DEFECT-001 fix verification.
+3. **Pending-items review** — read `implementation.md` Phase summary table + backlog refs; for each "queued"/"partial"/"deferred" claim, verify against disk via Bash/Glob/Read.
+
+Triage filter: each agent reported findings; this entry verified the top findings with direct file reads before promoting them to defects. Audit-agent claims were treated as **leads**, not conclusions.
+
+---
+
+#### DEFECT-003 — `agents/integration/README.md` stub left over from Phase 6 build (BLOCKER for discoverability) — RESOLVED
+
+**Detection.** Audit Agent 2 flagged `agents/integration/README.md` as 19 lines (stub from `New-Agent.ps1`). Verified by `Read`:
+
+```
+$ wc -l agents/{d365-ce,d365-fo,integration,reporting,brownfield,alm,solution-estimate,solution-architect}/README.md
+   64 d365-ce/README.md
+   55 d365-fo/README.md
+   19 integration/README.md       <-- STUB
+   47 reporting/README.md
+   89 brownfield/README.md
+   74 alm/README.md
+  113 solution-estimate/README.md
+   68 solution-architect/README.md
+```
+
+Integration's README was a 19-line `New-Agent.ps1` boilerplate ("Edit before first use" / "Author when stable" placeholders). The Phase 6 build entry (`2026-05-15-001`) claimed all 4 MATURE agent READMEs were authored; integration was missed.
+
+**Severity:** BLOCKER for discoverability — per the user's earlier DEFECT-002 lesson, "documented somewhere" is not enough; users must be able to orient themselves quickly. A stub README means an integration-agent newcomer cannot find the constitution, templates, commands, or boundaries without diving into folders blind.
+
+**Resolution.** Authored a full What/How/Details README mirroring the d365-fo / reporting / brownfield pattern (~110 lines). Covers: scope statement + R10 merged-agent rationale, How (6 workflow examples), Details (13 constitution files + all template categories + commands + docScope + design doc + ADRs cited), What this agent does NOT do, backlog references. Drift check clean — README is a SOURCE file, not a publish-pipeline-tracked derivative.
+
+---
+
+#### DEFECT-004 — bk-002 (/split semantics) status mismatch (REQUIRED) — RESOLVED
+
+**Detection.** Audit Agent 3 flagged that `design/09-orchestration-patterns.md` § Pattern 2 (lines 30-60) covers what bk-002 calls "6 thin spots", but the backlog still marked bk-002 as `queued`. Verified by `Read` + `Grep`:
+
+The 6 thin spots from backlog.md and their actual coverage status:
+
+| # | Thin spot | design/09 coverage |
+|---|---|---|
+| 1 | workflow.json init shape | ✅ line 42: `phase: DEFINE, currentStates: [SPEC_DRAFT], parent-handoff` frontmatter |
+| 2 | Skeleton spec frontmatter | ✅ line 42 same context |
+| 3 | `--target` flag / target-agent feature folder init | ✅ lines 38-41 (path branches by docScope) |
+| 4 | Template choice on bootstrap | ✅ implicit — skeleton uses the target agent's spec template |
+| 5 | Source spec SPEC_SPLIT state marker | ✅ Pattern 2 → `04-workflow-gates.md` reference |
+| 6 | **Multi-target collision behaviour** | ❌ NOT covered — what happens when two `/split` calls land overlapping scope at the same target |
+
+5 of 6 covered. The remaining 1 (collision behaviour) is an edge case worth a sub-detailed ADR if/when collisions emerge.
+
+**Severity:** REQUIRED — backlog state must match disk reality.
+
+**Resolution.** Updated `design/backlog.md` bk-002 row:
+- Status: `queued` → `partial (5 of 6 covered in design/09)`
+- Priority: P1 → P3 (the remaining sub-detail is not blocking)
+- Notes column: enumerates the 5 covered spots + names the 1 remaining (multi-target collision)
+
+---
+
+#### DEFECT-005 — `design/agents/reporting.md` thinner than per-agent peers (WARNING) — LOGGED as bk-030
+
+**Detection.** Audit Agent 1 flagged the reporting design doc as underdeveloped relative to peers. Verified:
+
+```
+$ wc -l design/agents/*.md
+  188 d365-ce.md
+  147 d365-fo.md
+  115 integration.md
+  108 reporting.md        <-- THINNEST per-agent doc
+  441 brownfield.md
+  172 alm.md
+  271 solution-estimate.md
+  167 solution-architect.md
+```
+
+Reporting at 108 lines vs peer-average of 178. Missing depth: Power BI dataset model conventions, RLS/OLS policy details, refresh strategy specifics, paginated-report structure, theme JSON layout, sensitivity-label decision tree.
+
+**Severity:** WARNING — the reporting agent was successfully built in Phase 6 against the existing doc, so this is a polish item, not a blocker.
+
+**Disposition.** Queued as **bk-030** (P3). Resolution involves expanding `design/agents/reporting.md` with the missing sections; no agent rebuild required.
+
+---
+
+#### DEFECT-006 — `design/13-chat-ui.md` SSE event-envelope contract undocumented (WARNING) — LOGGED as bk-031
+
+**Detection.** Audit Agent 1 flagged that chat-ui design covers high-level architecture + UX flows but does not specify the SSE event-envelope wire format (event-type names, payload shape per kind, `.workflow.json` change-event shape, error-event shape).
+
+Verified: `design/13-chat-ui.md` (145 lines) describes flows + security + filesystem model; the Phase 9 backend at `tools/chat-ui/backend/src/lib/cli-spawner.ts` + `routes/stream.ts` IMPLEMENTS a working contract (event types `stdout` / `stderr` / `exit` / `error`; payload `{ kind, ts, data?, code?, signal?, errorMessage? }`), but this contract is not lifted into the design doc.
+
+**Severity:** WARNING — implementation works; future clients (CLI consumers, alternate frontends) need to target a documented contract.
+
+**Disposition.** Queued as **bk-031** (P3). Resolution: add a "## SSE event envelope" section to `design/13-chat-ui.md` mirroring what the v1 backend already implements; mark it as the v1 contract.
+
+---
+
+#### DEFECT-007 — ALM Mermaid round-trip strategy detail missing (WARNING) — LOGGED as bk-032
+
+**Detection.** Audit Agent 1 flagged that `agents/alm/constitution/02-alm-conventions.md` describes "render PNG + preserve `<pre><code class='mermaid'>` source" but doesn't fully specify (a) ADO attachment-size handling, (b) JIRA Cloud ADF attachment endpoint specifics vs JIRA Server wiki, (c) `alm_roundtrip_check` diff algorithm + acceptable-loss threshold, (d) error handling when render fails.
+
+**Severity:** WARNING — must precede bk-018 (alm `converters/` MCP coding) to avoid downstream rework.
+
+**Disposition.** Queued as **bk-032** (P3). Resolution: extend `agents/alm/constitution/02-alm-conventions.md § Mermaid handling` with the detailed contract, OR author a new section in `design/agents/alm.md`. Should land before bk-018 coding begins.
+
+---
+
+#### DEFECT-008 — VS rates blank for the 8 reintroduced factors (R28 master-plan gap) (WARNING) — LOGGED as bk-033
+
+**Detection.** Audit Agent 1 flagged the R28 gap from the master plan: "VS column undefined for all 8 [reintroduced] factors (R23 was 4-level S/M/C/VC; awaiting another tool reference for VS rates)." This is acknowledged in `design/adr/0009-solution-estimate-consolidated.md § Negative consequences`.
+
+The 8 affected factors: Azure Function Build & UT, Integration (generic), CRM Master Data Preparation, Model Driven App Changes, PCF Control Development, Excel Report, ExperLogix Report, Hierarchy Security.
+
+**Severity:** WARNING — affects estimation accuracy for low-complexity items on these factors; usage will be rare in v1 but rates needed for customer confidence.
+
+**Disposition.** Queued as **bk-033** (P3). Distinct from `bk-010` (which is about *extending* the catalogue with F&O / deeper Integration / Reporting factors); bk-033 is about *completing* the existing 103-factor catalogue's VS column. Resolution: consult source SI Excel + tool playbooks; backfill `agents/solution-estimate/templates/factor-rates.yaml` + `factor-definitions.md`.
+
+---
+
+#### Pending-items review (Audit Agent 3 findings)
+
+11 items audited; 10 correctly marked + 1 mismatch:
+
+| Item | Claim | Disk reality | Match? |
+|---|---|---|---|
+| bk-005 | "skeleton in place; body queued" | 6 fdd/ skeleton files present | ✅ |
+| bk-007 | "skeletons in place" | 8 fdd/+tdd/ sub-platform skeletons present | ✅ |
+| bk-008 | "base 6 stubs authored" | 6 checklist files per CE/FO/Int/Rep | ✅ |
+| bk-012 | "18 sample bindings; rest queued" | exactly 18 bindings on disk (8 CE + 4 FO + 3 Int + 3 Rep) | ✅ |
+| bk-014 | "MCP engine code queued" | `tools/mcp-server/src/groups/brownfield-engine/` ABSENT | ✅ |
+| bk-016 | "validator code queued" | `tools/mcp-server/src/groups/brownfield_validators/` ABSENT | ✅ |
+| bk-018 | "alm + converters code queued" | both directories ABSENT | ✅ |
+| bk-010 | "extensions queued" | 103-factor base complete; extensions not authored | ✅ |
+| bk-002 | "queued — 6 thin spots" | design/09 covers 5/6 explicitly | ❌ → reclassified as DEFECT-004 |
+| bk-022 | "hook configs queued" | settings.template.json has stub hooks section only | ✅ |
+| bk-023 | "/customize-template queued" | no helper script in tools/scaffold/ | ✅ |
+
+**Conclusion: 10 of 11 statuses correct; 1 needed reclassification (bk-002 → DEFECT-004).**
+
+---
+
+#### Verification (acceptance criteria for this audit + DEFECT-003 + DEFECT-004)
+
+| Check | Result |
+|---|---|
+| Audit covers Spec → Design → Implementation | ✅ — three parallel Explore agents; trust-but-verified against disk |
+| DEFECT-003 resolved (integration README replaced) | ✅ — file expanded from 19 → ~110 lines matching peer pattern |
+| DEFECT-004 resolved (bk-002 status reclassified) | ✅ — backlog.md row updated with explicit 5/6 coverage note + 6th thin spot identified |
+| DEFECT-005 through DEFECT-008 queued with rationale | ✅ — bk-030/031/032/033 added with notes column citing detection source + resolution path |
+| Backlog Summary refreshed | ✅ — 33 total items (was 29), 1 partial, 14 queued |
+| Publish + drift check clean | ✅ — `Tracked: 365, Drift: 0` |
+
+---
+
+#### Follow-up
+
+- **bk-030** through **bk-033** are P3 polish items — none block the platform v1 release-ready state. They surface as the platform matures and real projects exercise the edges.
+- The pending-items audit demonstrated the value of cross-checking implementation log claims against disk reality on a cadence. Recommend running this audit periodically (e.g., after every 5 phase entries, or before any "release-ready" claim).
+- **bk-002** is now the only `partial` item in the backlog. When the 6th sub-detail (multi-target collision behaviour) emerges in practice OR when bk-018 surfaces it during alm coding, an ADR can close that residual sub-spot.
+
+**Status:** Audit done; 2 defects resolved in-session; 4 queued; 1 status correction applied. Platform release-readiness unchanged (these are all polish / sub-detail items).
+
+---
+
+### 2026-05-15-008 — DEFECT-002 RESOLVED: command documentation standard authored; `/estimate` rebuilt against it; per-agent rebuild queued (bk-029)
+
+| Field | Value |
+|---|---|
+| **Kind** | bugfix (resolution) + design-update |
+| **Master-plan refs** | §26 (revision discipline), §14 (README conventions extension) |
+| **Design doc refs** | [design/17-command-doc-standard.md](design/17-command-doc-standard.md) (NEW), [design/14-readme-conventions.md](design/14-readme-conventions.md) (companion), [design/backlog.md](design/backlog.md) (bk-029 added) |
+| **ADR refs** | — (no new ADR; the standard is a documentation discipline, not a load-bearing decision) |
+| **Backlog refs** | `bk-029` (NEW — command-doc rebuild for the 88 remaining bodies) |
+| **Files touched** | `design/17-command-doc-standard.md` (NEW), `agents/solution-estimate/.claude/commands/estimate.md` (full rebuild), `agents/solution-estimate/README.md` (refresh with Quick reference + standard cross-ref), `design/backlog.md` (bk-029 row added; Summary post-Phase 10 queued list extended), `implementation.md` (this entry) |
+| **Status** | done |
+
+**Summary.** DEFECT-002 resolved. The user reported they couldn't discover the `--export` flag on `/estimate` even though it was technically documented — proving that "the option is documented somewhere in the body" is insufficient; **discoverability** is what's required. Resolution authored a new design doc [`design/17-command-doc-standard.md`](design/17-command-doc-standard.md) defining the mandatory structure for every agent command body (Quick reference table immediately under the H1 + ≥3 examples + Common workflows section + Usage code block listing every flag), applied the standard to `/estimate` as the worked example (rebuilt end-to-end), updated the agent README to surface the Quick reference + cross-ref to the standard, and queued `bk-029` for the remaining 88 command bodies across 7 agents.
+
+**Detail.**
+
+*New design doc `design/17-command-doc-standard.md`:*
+
+The standard codifies 10 rules (R1-R10):
+
+- **R1** — Quick reference flag table is **mandatory** and above-the-fold (right after the opening blockquote). Every flag listed with `Required? / Default / Purpose` columns. No flag is documented only in prose without also appearing in the table.
+- **R2** — At least 3 examples; the first is bare invocation or the simplest case.
+- **R3** — A Common workflows section narrates end-to-end sequences (2+ workflows minimum).
+- **R4** — Every flag in Usage section uses the literal syntax `--flag <value>`; optional flags wrapped in `[]`; choice flags as `a|b|c`.
+- **R5** — No flag may be introduced in the Execution flow without first appearing in Quick reference + Usage.
+- **R6** — Cross-references are at the bottom in a uniform shape (Constitution / Related commands / Schemas / Design / ADRs).
+- **R7** — One-paragraph what-it-does immediately under the H1.
+- **R8** — Examples come BEFORE Execution flow (reader stops at Examples; should not have to read execution-flow detail to find an invocation).
+- **R9** — Hard rules section lists machine-enforced constraints.
+- **R10** — Outputs are itemised with paths.
+
+Plus a self-check (8-item checklist) authors run before commit, an anti-patterns list, and a worked example reference (`/estimate`).
+
+*Rebuilt `/estimate` command body (post-rebuild structure):*
+
+| Section | Status pre-DEFECT-002 | Status post-rebuild |
+|---|---|---|
+| Quick reference flag table (above-the-fold) | absent | **NEW** — all 6 flags surfaced in a single table immediately under the H1 |
+| Usage code block | present but listed only 3 flags | **rebuilt** — lists all 6 flags including `--export-to`, `--project`, `--preserve-manual-overrides` |
+| Examples | 0 (flags documented in prose only) | **6 examples** (Example 2 explicitly addresses the DEFECT-002 case: "Export to Excel for spreadsheet review") |
+| Common workflows | 0 | **4 workflows** (A: First estimate from RFP, B: Refresh + export after domain agents, C: Round-trip with QA, D: Brownfield project) |
+| Hard rules | implicit | **explicit numbered list** (rules 1-8 incl. new R8 Requirement Level rule) |
+| Export semantics | terse mention | **dedicated section** explaining XLSX vs CSV vs JSON column behaviour |
+| See also | flat list | **categorised** (Constitution / Data / Templates / Design / ADRs / Defect history) |
+
+After the rebuild, the `--export` flag appears in **THREE independent discovery paths**: (1) Quick reference table row 3, (2) Usage code block line 1, (3) Example 2 with descriptive heading "Export to Excel for spreadsheet review (the DEFECT-002 case)". A user opening the file top-down hits the flag within seconds.
+
+*README polish:*
+
+The agent README now opens with a Quick reference table mirroring the command body's, includes a clearly-headed section explaining the two orthogonal classifications, and surfaces the `bk-029` rebuild trail in its Revision history. Cross-references to the new design doc.
+
+*Cross-agent audit findings:*
+
+| Agent | Command bodies | Bodies needing rebuild against the standard |
+|---|---:|---:|
+| solution-estimate | 1 | 1 — **rebuilt this session (DONE)** |
+| solution-architect | 3 | 3 — queued under bk-029 |
+| d365-ce | 17 | 17 — queued under bk-029 |
+| d365-fo | 19 | 19 — queued under bk-029 |
+| integration | 17 | 17 — queued under bk-029 |
+| reporting | 17 | 17 — queued under bk-029 |
+| brownfield | 9 | 9 — queued under bk-029 |
+| alm | 6 | 6 — queued under bk-029 |
+| **Total** | **89** | **88 queued; 1 done** |
+
+The 88 queued bodies are FUNCTIONALLY correct (they document the contract); the rebuild is a **discoverability uplift**, not a correctness fix. Per-agent rebuild is the unit-of-work (all commands in an agent at once). bk-029 tracks the queue.
+
+**Publish + drift check.**
+
+```
+Mode: Publish    -> Wrote: <small delta> Skipped: <rest> Drift: 0   (refreshed solution-estimate derivative surfaces)
+Mode: CheckDrift -> Wrote: 0  Skipped: 365  Drift: 0   (clean)
+```
+
+**Verification (acceptance criteria for DEFECT-002):**
+
+| Acceptance criterion | Pass? |
+|---|---|
+| User opens `agents/solution-estimate/.claude/commands/estimate.md` and finds **every** flag within 5 seconds without scrolling | ✅ — Quick reference table is the first non-blockquote element (line ~12 of the file) |
+| User finds at least one example of `--export` usage within 10 seconds | ✅ — Example 2 carries an `## Examples` H2 anchor; heading explicitly names "Export to Excel"; copy-paste-ready code block |
+| User finds the end-to-end "round-trip with QA" workflow without leaving the file | ✅ — Workflow C is a sub-section of `## Common workflows`; full 5-step sequence |
+| Standard documented for other agent commands so future polish is systematic | ✅ — design/17-command-doc-standard.md authored; bk-029 added with per-agent breakdown |
+| Drift check clean | ✅ — `Tracked: 365, Drift: 0` |
+
+**Follow-up.**
+
+- **bk-029** queued — per-agent command-doc rebuild against the standard. Per-agent unit-of-work. Recommended order: highest-traffic agents first (d365-ce, integration), then F&O / reporting, then brownfield / alm / solution-architect. Each agent's rebuild is one implementation log entry.
+- The new standard applies to **future** new command bodies as well (any new agent or new extra-command). The self-check section of the standard is the gate.
+
+---
+
+### 2026-05-15-007 — DEFECT-001 RESOLVED: Requirement Level L1-L5 column added; Estimation Hierarchy renamed; ADR-0012 accepted; design + agent + templates updated; published
+
+| Field | Value |
+|---|---|
+| **Kind** | bugfix (resolution) + design-update + scaffold + adr |
+| **Master-plan refs** | §7.5 (solution-estimate), §26 (revision discipline) |
+| **Design doc refs** | [design/agents/solution-estimate.md](design/agents/solution-estimate.md) (updated 2026-05-15 — new Requirement Level section + frontmatter `adr-refs` updated to include ADR-0012 + `last-reviewed: 2026-05-15`), [design/adr/0012-requirement-level-taxonomy.md](design/adr/0012-requirement-level-taxonomy.md) (NEW) |
+| **ADR refs** | [ADR-0012](design/adr/0012-requirement-level-taxonomy.md) (NEW, `status: accepted` 2026-05-15) |
+| **Backlog refs** | DEFECT-001 closed by this entry. `bk-009` solution-estimate work-item revised (additional `Requirement Level` column + `Estimation Hierarchy` rename are now part of the v1 estimate contract). |
+| **Files touched** | `design/adr/0012-requirement-level-taxonomy.md` (NEW), `design/agents/solution-estimate.md` (updated — frontmatter + Output 1 column table + §4 rename + new §4.5 + Constitution layout + References), `agents/solution-estimate/constitution/01-template-alignment.md` (v2.0.0 — added Requirement Level column + renamed Categorization path labels), `agents/solution-estimate/constitution/04-categorization-rules.md` (v2.0.0 — full rewrite: renamed L1-L5 to Project/Module/Capability/Feature/Factor; updated XLSX export contract; new "Relationship to the Requirement Level taxonomy" section), `agents/solution-estimate/constitution/05-requirement-levels.md` (NEW — full L1-L5 business-process taxonomy + classification heuristic + ambiguity handling + worked examples + single-column-on-every-surface rule + override path), `agents/solution-estimate/templates/business-req-detail.template.md` (v2 — 21-column inventory incl. Requirement Level; new column reference table; new validation rule #6; new export semantics section), `agents/solution-estimate/templates/module-overall-hrs.template.md` (v2 — §4 renamed to "Estimation Hierarchy"; new §4.5 "Requirement Level Distribution" with table + Mermaid pie + cross-tab Module × Level + typed-gap table; §5 Typed Gaps catalogue extended with REQUIREMENT-LEVEL-INFERENCE + REQUIREMENT-LEVEL-NFR-DEFAULT), `agents/solution-estimate/.claude/commands/estimate.md` (rebuilt — adds Requirement Level classification step to execution flow; new Hard rule #8; new Export semantics section; also covers DEFECT-002 standard), `agents/solution-estimate/README.md` (refreshed — Quick reference + two-orthogonal-classifications explainer + revision history), `implementation.md` (this entry) |
+| **Status** | done |
+
+**Summary.** DEFECT-001 resolved end-to-end per the user's request that bug resolution must correct (a) the design, (b) the documents, and (c) rebuild the affected agents. Authored ADR-0012 as the load-bearing decision; updated the design doc to reflect it; rewrote the affected constitution + templates + command body in the `solution-estimate` agent; refreshed the README; re-ran the publish pipeline; drift-check clean.
+
+**Detail.**
+
+*Design layer (ADR + design doc):*
+
+- **ADR-0012** ([file](design/adr/0012-requirement-level-taxonomy.md)) — three parts:
+  - **(a)** Add `Requirement Level` as a new single column with values `L1` / `L2` / `L3` / `L4` / `L5` per the user-supplied business-process taxonomy (Category / Process Group / Process / Activity / Task).
+  - **(b)** Rename the existing internal estimation hierarchy from `L1-L5` labels to **named** levels (`Project` / `Module` / `Capability` / `Feature` / `Inventory Factor`) — eliminates the naming collision.
+  - **(c)** Add a `§4.5 Requirement Level Distribution` summary to the stakeholder deliverable (table + Mermaid pie + cross-tab Module × Level).
+  - Alternatives rejected: splitting Requirement Level into 5 columns on XLSX (user explicitly objected); keeping L1-L5 on both axes (collision unresolved); dropping the internal hierarchy entirely (loses effort-rollup primitive).
+- **`design/agents/solution-estimate.md`** updated — frontmatter `adr-refs` now includes ADR-0012; `last-reviewed: 2026-05-15`. Output 1 column table now lists 21 columns including the new Requirement Level. §4 rename + §4.5 added in the Output 3 description. Constitution layout block updated to list the new `05-requirement-levels.md`. References section now cites ADR-0012 and the implementation log entries.
+
+*Constitution layer (agent files):*
+
+- **`01-template-alignment.md`** (v2.0.0) — header revision note + Output 1 description bumped to 21 columns + column table now has the Requirement Level row immediately after Req ID + XLSX export rules call out the single-column constraint for Requirement Level and the named-column split for Categorization.
+- **`04-categorization-rules.md`** (v2.0.0) — full rewrite. Renamed levels throughout: `L1 → Project`, `L2 → Module`, `L3 → Capability`, `L4 → Feature`, `L5 → Inventory Factor`. New "Naming note (post-ADR-0012)" front-of-file callout. New "Relationship to the Requirement Level taxonomy" section with a worked-examples table showing how the two orthogonal axes apply to the same requirement.
+- **`05-requirement-levels.md`** (NEW) — full canonical reference. 5-row taxonomy table with examples; "Why this taxonomy" rationale; classification heuristic (4 steps: explicit marker → lexical signals → estimation-hierarchy context → ambiguity handling); 9 worked examples; "Single-column on every output surface" rule with explicit user-quote citation; Distribution-summary section pointer; override path.
+
+*Template layer (output files):*
+
+- **`business-req-detail.template.md`** (v2 schema) — header revision note in frontmatter; "21-column inventory" in the descriptive blockquote; new "Column reference" table immediately under the AI Summary listing all 21 columns; the rendered per-module sub-tables now have Requirement Level as the 2nd column; validation rule #6 added; new "Export semantics" section explicitly listing XLSX/CSV/JSON column behaviour.
+- **`module-overall-hrs.template.md`** (v2 schema) — header revision note; §4 rename ("Requirement Hierarchy (L1 to L5)" → "Estimation Hierarchy"); §4 table headers renamed from "L1 (Solution)" / "L2 (Module)" / etc. to "Project" / "Module" / etc.; Hierarchy tree Mermaid relabelled (`L1`/`L2`/`L3`/`L4` node ids → `P`/`MA`/`MB`/`CA`/`CB`/`FA`); **NEW §4.5 Requirement Level Distribution** with: narrative headline + 5-row distribution table + Mermaid pie + cross-tab Module × Level + typed-gap surfacing; §5 Typed Gaps catalogue extended with two new categories (`REQUIREMENT-LEVEL-INFERENCE`, `REQUIREMENT-LEVEL-NFR-DEFAULT`).
+
+*Command body (rebuilt per the new doc standard from DEFECT-002):*
+
+- **`.claude/commands/estimate.md`** — rebuilt against `design/17-command-doc-standard.md`. Execution flow step 4 now includes "Set Requirement Level (L1-L5) per `constitution/05-requirement-levels.md`"; emits Typed Gap `REQUIREMENT-LEVEL-INFERENCE` when inferred. New Hard rule #8. New dedicated "Export semantics" section listing XLSX/CSV/JSON behaviour per [ADR-0012](design/adr/0012-requirement-level-taxonomy.md).
+
+*Agent README:*
+
+- **`README.md`** — opens with Quick reference flag table; new explainer section on the two orthogonal classifications (Requirement Level vs Estimation Hierarchy) with the full L1-L5 table; new per-project override `requirement-levels-override.md` listed; revision history section added showing the 2026-05-15 changes.
+
+**Verification (acceptance criteria for DEFECT-001):**
+
+| Acceptance criterion | Pass? |
+|---|---|
+| `Estimation-BusinessReqDetail.md` carries a `Requirement Level` column | ✅ — present in `business-req-detail.template.md` column reference table (row 2 of 21) AND in the rendered per-module sub-tables |
+| Column values are `L1` / `L2` / `L3` / `L4` / `L5` per the user-supplied taxonomy | ✅ — taxonomy defined in `05-requirement-levels.md` matching the user's exact level definitions + examples |
+| On XLSX export the Requirement Level is a SINGLE column (never split into 5) | ✅ — explicitly stated in: ADR-0012 § Decision (a), `05-requirement-levels.md § Single-column on every output surface`, `business-req-detail.template.md § Export semantics`, command body § Export semantics, README § What this agent does NOT do |
+| Existing internal L1-L5 scheme renamed to avoid collision | ✅ — `04-categorization-rules.md` v2.0.0 fully renamed; `01-template-alignment.md` v2.0.0 updated; `module-overall-hrs.template.md` v2 §4 renamed; design doc updated |
+| Stakeholder deliverable shows a Requirement Level Distribution summary | ✅ — new §4.5 in `module-overall-hrs.template.md` with table + Mermaid pie + cross-tab |
+| Agent classifies requirements into L1-L5 during ingestion | ✅ — execution flow step 4 includes the classification step; Typed Gap `REQUIREMENT-LEVEL-INFERENCE` surfaces inferences |
+| Design + documents + agent all corrected (user's process requirement) | ✅ — ADR-0012 (design) + 17-command-doc-standard reference (design) + 5 agent files updated (agent rebuild) + README refreshed (document) |
+| Publish pipeline + drift check clean | ✅ — `Mode: CheckDrift, Tracked: 365, Drift: 0` |
+
+**Follow-up.**
+
+- **The existing internal hierarchy rename is breaking for anyone who parsed `L1=...` from the pre-2026-05-15 path string in the Categorization column.** No such consumer exists yet (no project has been built that uses the agent's outputs); mitigation per ADR-0012 § Consequences.
+- **Override path** — when a customer uses a different process-decomposition vocabulary, drop `projects/{p}/_aggregator/estimation/requirement-levels-override.md` to override the heuristic per project. Documented in `05-requirement-levels.md § Override path`.
+- **Future ADR** — when the alm agent's `converters/` module is implemented (`bk-018`), the XLSX export behaviour will need to be implemented in code that respects the single-column-vs-named-split rules declared here. Adding that ADR (or extending ADR-0012) is part of `bk-018` scope.
+
+---
+
+### 2026-05-15-006 — Defect intake: DEFECT-001 (Requirement Level column missing) + DEFECT-002 (command documentation weak)
+
+| Field | Value |
+|---|---|
+| **Kind** | bugfix (intake) |
+| **Master-plan refs** | §7.5 (solution-estimate), §26 (revision discipline) |
+| **Design doc refs** | [design/agents/solution-estimate.md](design/agents/solution-estimate.md), [design/14-readme-conventions.md](design/14-readme-conventions.md) |
+| **ADR refs** | [ADR-0009](design/adr/0009-solution-estimate-consolidated.md) (existing); ADR-0012 (NEW, pending — Requirement Level taxonomy) |
+| **Backlog refs** | Two new bugs entered: `DEFECT-001`, `DEFECT-002`. Fixes resolved in entries `2026-05-15-007` and `2026-05-15-008`. |
+| **Files touched** | This entry only (intake log). Resolution entries follow. |
+| **Status** | partial (logged; fixes follow in next two entries) |
+
+**Defects reported by user (2026-05-15):**
+
+### DEFECT-001 — `solution-estimate` inventory missing a "Requirement Level" column (L1-L5 business-process taxonomy)
+
+**Symptom (user-reported):** The `Estimation-BusinessReqDetail.md` inventory does not carry a column called **`Requirement Level`** with values L1 / L2 / L3 / L4 / L5 representing the **business-process taxonomy** (Category → Process Group → Process → Activity → Task). The user expects every requirement row to be classified into one of these 5 levels.
+
+**Severity:** BLOCKER for the stakeholder deliverable. Without this column, requirements cannot be filtered or summarised by process-level — a customer-side analysis primitive.
+
+**User-supplied taxonomy:**
+
+| Level | Name | Description | Example |
+|---|---|---|---|
+| **L1** | Category / Enterprise View | Highest-level value chain map. Groups major end-to-end business domains or operational functions. | Supply Chain Management, Human Resources, Finance |
+| **L2** | Process Group | Breaks L1 categories into major workflows or distinct end-to-end process cycles. | Procure-to-Pay, Order-to-Cash, Recruit-to-Retire |
+| **L3** | Process / Sub-Process | Specific processes within an L2 group, including handoffs, decisions, and cross-functional interactions. | Select Supplier, Create Purchase Order, Process Invoice |
+| **L4** | Activity | Individual activities or steps required to complete the L3 process. Identifies roles, applications, and business rules. | Evaluate Suppliers, Obtain Approvals, Enter Contract Data in ERP |
+| **L5** | Task / Work Instruction | Most granular operational steps. Dictates exactly how a specific system screen is used or how an action is performed. | Click "Create Vendor," Fill in Tax ID, Submit Form |
+
+**User additional constraints:**
+
+1. On export (xlsx / csv / json), the Requirement Level must remain a **single column** — must NOT be split into 5 columns (L1, L2, L3, L4, L5).
+2. The deliverable must include a **categorization summary** showing the distribution of requirements across L1-L5.
+
+**Naming collision detected during triage (this entry).** The existing solution-estimate constitution already uses the names "L1 / L2 / L3 / L4 / L5" for an *internal estimation hierarchy* (Project / Module / Capability / Feature / Inventory Factor). This is documented in [constitution/04-categorization-rules.md](agents/solution-estimate/constitution/04-categorization-rules.md), the `Categorization` column of [business-req-detail.template.md](agents/solution-estimate/templates/business-req-detail.template.md), §4 of [module-overall-hrs.template.md](agents/solution-estimate/templates/module-overall-hrs.template.md), and the XLSX export of that file is described in `04-categorization-rules.md` as *"breaks Categorization into 5 separate columns named L1 / L2 / L3 / L4 / L5"* — which is **exactly** what the user said not to do for the new column. The collision must be resolved before the new column can land cleanly.
+
+**Resolution approach (executed in entry `2026-05-15-007`):**
+
+1. Author **ADR-0012** — Requirement Level L1-L5 business-process taxonomy (new dimension orthogonal to estimation hierarchy).
+2. **Rename the existing internal scheme** from `L1-L5` to its named levels (`Project`, `Module`, `Capability`, `Feature`, `Factor`) throughout the agent to eliminate the collision. The renamed scheme is the "Estimation Hierarchy"; the new scheme is the "Requirement Level."
+3. **Add new constitution file** `agents/solution-estimate/constitution/05-requirement-levels.md` with the L1-L5 definitions + classification heuristic.
+4. **Update `business-req-detail.template.md`** to add `Requirement Level` as a single column (values L1 / L2 / L3 / L4 / L5).
+5. **Update XLSX export contract**: `Requirement Level` remains ONE column. The renamed Estimation Hierarchy splits into named columns (`Project` / `Module` / `Capability` / `Feature` / `Factor`) — no more `L1-L5` column names on export.
+6. **Update `module-overall-hrs.template.md`** — add `§4.X Requirement Level Distribution` summary (count + hours rolled up per level + Mermaid distribution chart).
+7. **Update `/estimate` command body** to set `Requirement Level` during requirement ingestion + classify per the heuristic in `05-requirement-levels.md`.
+8. **Update design doc** [design/agents/solution-estimate.md](design/agents/solution-estimate.md) to reflect the new column + the renamed Estimation Hierarchy.
+9. **Update agent README** to surface the new column + the change.
+10. **Republish** — refresh GHCP / Claude derivative surfaces; drift-check clean.
+
+### DEFECT-002 — Command documentation quality is weak; flags / options are not discoverable
+
+**Symptom (user-reported):** "When I was using the estimation agent, no way I could find that there is an option for exporting by using `--export` options." The flag `--export csv|xlsx|json` IS documented in `agents/solution-estimate/.claude/commands/estimate.md` line 22 and in the agent's README line 16 — but the user missed both. This is a discoverability defect: the documentation exists but is not surfaced in a way the user can find when looking.
+
+**Severity:** REQUIRED. The platform's whole agent-discoverability premise depends on command bodies being immediately legible to a user opening them for the first time.
+
+**Resolution approach (executed in entry `2026-05-15-008`):**
+
+1. **Author a documentation standard** for command bodies (new design doc `design/17-command-doc-standard.md` OR extension to [design/14-readme-conventions.md](design/14-readme-conventions.md)). The standard requires every command body to include:
+   - A **`## Usage`** section with a flag table — every flag listed with its default + behaviour
+   - A **`## Examples`** section with 3-5 concrete invocations (the most common scenarios, copy-paste-ready)
+   - A **`## Common workflows`** section narrating start-to-finish sequences (e.g., "First estimate from RFP" → "Refresh after domain agents run" → "Export for QA review")
+   - A **`## Flag quick reference`** table — visible above-the-fold; every flag with its one-line purpose
+   - Use prominent code blocks for ALL invocation patterns (not bury flags inside prose)
+2. **Apply the standard** to `agents/solution-estimate/.claude/commands/estimate.md` — the immediate fix for the user's complaint.
+3. **Update agent README** to surface every flag with at least one example.
+4. **Document audit findings** for the other 8 agents' command bodies — queue a per-command polish pass as a backlog item. Don't rebuild all 8 agents in this session; instead document the standard + the gap so the next polish pass closes it systematically.
+
+**Status of this entry: partial — defects logged, intake complete. Resolution entries follow.**
+
+---
+
 ### 2026-05-15-005 — Phase 10 (Verification + ADR backfill) — V1/V8/V11 scripted PASS; ADRs 0001-0011 accepted; backlog updated; v1 release-ready close-out
 
 | Field | Value |

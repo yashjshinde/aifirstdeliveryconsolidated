@@ -1,15 +1,18 @@
 ---
 agent: solution-estimate
-version: 1.0.0
-last-reviewed: 2026-05-14
+version: 2.0.0
+last-reviewed: 2026-05-15
 owner: aggregator
+adr-refs: [ADR-0009, ADR-0012]
 ---
 
 # Template Alignment
 
 This agent's output structure is PORTED from a project-tested estimation template. The shapes below are not invented — every column, every multiplier, every key rule traces back to a real-world estimate that signed off with a customer. Deviations require an ADR.
 
-## Output 1 — `Estimation-BusinessReqDetail.md` (20-column inventory)
+**Revision 2026-05-15 (per [ADR-0012](../../../design/adr/0012-requirement-level-taxonomy.md)):** Added `Requirement Level` column to Output 1 (now 21 columns; was 20). Renamed the `Categorization` column path labels from `L1 > L2 > L3 > L4 > L5` to `Project > Module > Capability > Feature > Factor` to remove the naming collision with the new business-process taxonomy. XLSX export semantics updated accordingly.
+
+## Output 1 — `Estimation-BusinessReqDetail.md` (21-column inventory)
 
 **Two-level grouping** in the rendered file:
 
@@ -23,12 +26,13 @@ This agent's output structure is PORTED from a project-tested estimation templat
 
 Empty sub-sections are omitted. A single Req ID may appear in multiple sub-sections when one requirement needs both a Customization row (Plugin) and a Configuration row (Business Rule).
 
-**20 columns:**
+**21 columns** (was 20 pre-ADR-0012; `Requirement Level` added 2026-05-15):
 
 | Column | Allowed values / format |
 |---|---|
 | Req ID | `REQ-001` / `US-123` |
-| Categorization (L1 > L2 > L3 > L4 > L5) | Full hierarchy path on every row |
+| **Requirement Level** | `L1` / `L2` / `L3` / `L4` / `L5` — business-process taxonomy per [ADR-0012](../../../design/adr/0012-requirement-level-taxonomy.md) and [05-requirement-levels.md](05-requirement-levels.md). **Single value on every row.** **NEVER split into 5 columns on any export surface.** |
+| Categorization (Project > Module > Capability > Feature > Factor) | Full estimation-hierarchy path on every row. (Was `L1 > L2 > L3 > L4 > L5` pre-ADR-0012; relabelled to remove naming collision with `Requirement Level`.) |
 | Source | Where the requirement is documented in our project — file + section (e.g., `RFP.docx §3.2.1`) |
 | Original Req Ref | Pointer to system-of-record (JIRA / ADO ticket ID or external register) |
 | Module / Feature | Logical functional grouping |
@@ -38,7 +42,7 @@ Empty sub-sections are omitted. A single Req ID may appear in multiple sub-secti
 | Fitment | One of 8 values (see 03-fitment-classification.md) |
 | Brownfield Status | `NEW` / `EXTEND` / `REPLACE` / `REFERENCED` / `N/A` |
 | Type of Integration | `Batch` / `Real-time` / `Middleware` / `API based` / `File based` / `NA` |
-| Inventory | The factor that covers this row's work (= L5 value); one of 103 factors |
+| Inventory | The factor that covers this row's work (= Factor level of the Categorization path); one of 103 factors |
 | VS count | Integer >= 0 |
 | Simple count | Integer >= 0 |
 | Medium count | Integer >= 0 |
@@ -48,7 +52,10 @@ Empty sub-sections are omitted. A single Req ID may appear in multiple sub-secti
 | Assumptions / Comments | Estimation assumptions / constraints — **mandatory** |
 | Open Questions | Unresolved clarifications (may be empty when fully clarified) |
 
-XLSX export breaks Categorization into 5 separate L1/L2/L3/L4/L5 columns for pivot/filter use.
+XLSX export rules (per [ADR-0012](../../../design/adr/0012-requirement-level-taxonomy.md)):
+
+- **`Requirement Level`** — single column (NEVER split into 5 columns)
+- **`Categorization`** — splits into 5 columns named **`Project`** / **`Module`** / **`Capability`** / **`Feature`** / **`Factor`** for pivot/filter use. (Was `L1`/`L2`/`L3`/`L4`/`L5` columns pre-ADR-0012; relabelled to remove naming collision.)
 
 ## Output 2 — `Estimation-ModuleBuildHrs.md` (per-module factor rollup)
 

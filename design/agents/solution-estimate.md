@@ -1,8 +1,8 @@
 ---
 title: solution-estimate — aggregator for project effort estimation
 status: live
-adr-refs: [ADR-0009, ADR-0001]
-last-reviewed: 2026-05-14
+adr-refs: [ADR-0009, ADR-0001, ADR-0012]
+last-reviewed: 2026-05-15
 owner: design
 ---
 
@@ -64,28 +64,31 @@ Grouping:
    ...
 ```
 
-20 columns:
+21 columns (was 20 pre-ADR-0012; **`Requirement Level` added 2026-05-15 per [ADR-0012](../adr/0012-requirement-level-taxonomy.md)**):
 
 | Column | Allowed values |
 |---|---|
 | Req ID | `REQ-001` / `US-123` |
-| Categorization (L1 > L2 > L3 > L4 > L5) | Full estimation hierarchy path |
+| **Requirement Level** | **`L1` / `L2` / `L3` / `L4` / `L5`** — business-process taxonomy per [ADR-0012](../adr/0012-requirement-level-taxonomy.md) (Category / Process Group / Process / Activity / Task). **SINGLE column on every output surface including XLSX/CSV/JSON — never split into 5 columns.** |
+| Categorization (Project > Module > Capability > Feature > Factor) | Full estimation-hierarchy path. Labels were `L1-L5` pre-ADR-0012; renamed to explicit names to remove the collision with the Requirement Level taxonomy. |
 | Source | Where requirement is documented in our project (file + section) |
 | Original Req Ref | Pointer back to system-of-record (JIRA / ADO / customer's own register / deep link) |
-| Module / Feature | Logical functional grouping (= L2 + L4 conflated) |
+| Module / Feature | Logical functional grouping (= Module + Feature levels of the Categorization path conflated) |
 | Req Title | Verbatim requirement statement |
 | Priority | `High` / `Medium` / `Low` / `MVP Phase 1` / `MVP Phase 2` |
 | **Confidence Level** | `Placeholder ±40%` / `Low ±30%` / `Medium ±20%` / `High ±15%` / `Fully Detailed ±10%` |
 | **Fitment** | One of 8 values (see below) |
 | **Brownfield Status** | `NEW` (×1.0) / `EXTEND` (×0.6) / `REPLACE` (×1.15) / `REFERENCED` (×0.0) / `N/A` (greenfield) |
 | Type of Integration | `Batch` / `Real-time` / `Middleware` / `API based` / `File based` / `NA` |
-| Inventory | The factor that covers this row's work (= L5 value); one of 103 factors |
+| Inventory | The factor that covers this row's work (= Factor level of the Categorization path); one of 103 factors |
 | **VS / S / M / C / VC** counts | Integer ≥ 0 |
 | Solution / Rationale | Why this factor + complexity were chosen — **mandatory** |
 | Assumptions / Comments | Estimation assumptions / constraints — **mandatory** |
 | Open Questions | Unresolved clarifications |
 
-**XLSX export** breaks Categorization into 5 separate L1/L2/L3/L4/L5 columns for pivot/filter use.
+**XLSX export** (per [ADR-0012](../adr/0012-requirement-level-taxonomy.md)):
+- `Requirement Level` stays a SINGLE column (never split).
+- `Categorization` splits into 5 named columns: `Project` / `Module` / `Capability` / `Feature` / `Factor` (was `L1-L5` pre-ADR-0012).
 
 **Key rule:** one row per inventory type per requirement. A requirement needing both JS and a Plugin produces two rows.
 
@@ -130,7 +133,12 @@ Phase multipliers:
 
 **§3 Configuration vs Customization Split** — table + Mermaid pie chart + per-module split table.
 
-**§4 Requirement Hierarchy L1-L5** — one table per level (L1 Solution, L2 Modules, L3 Capabilities, L4 Features, L5 cross-cutting Factor usage) + Mermaid hierarchy flowchart TD + **Confidence Distribution pie** showing % of inventory at each band.
+**§4 Estimation Hierarchy** — one table per level (Project / Modules / Capabilities / Features / cross-cutting Factor usage) + Mermaid hierarchy flowchart TD + **Confidence Distribution pie** showing % of inventory at each band. (Renamed 2026-05-15 from "Requirement Hierarchy L1-L5" per [ADR-0012](../adr/0012-requirement-level-taxonomy.md) to remove naming collision with the new Requirement Level taxonomy.)
+
+**§4.5 Requirement Level Distribution** *(NEW — per [ADR-0012](../adr/0012-requirement-level-taxonomy.md))* — count + effort summary rolled up by the L1-L5 business-process taxonomy:
+- 5-row table: Level / Description / Requirement Count / Inventory Rows / Build Hrs / Project Hrs / % of Total
+- Mermaid pie chart titled "Requirement Level Distribution"
+- Narrative one-liner ("63% of requirements are L3 Process, 22% L4 Activity, …")
 
 **§5 Assumptions, Open Questions & Typed Gaps** — consolidated from inventory rows; gaps categorized:
 
@@ -224,8 +232,8 @@ agents/solution-estimate/constitution/
 ├── 01-template-alignment.md          # PORTED from project-tested estimation-instructions §3 + §4
 ├── 02-factor-definitions.md          # 103-factor catalogue (descriptions + categories)
 ├── 03-fitment-classification.md      # 8-value Fitment decision tree
-├── 04-categorization-rules.md        # L1-L5 hierarchy derivation heuristics
-└── 05-multilingual.md                # if estimation outputs need localization
+├── 04-categorization-rules.md        # Estimation Hierarchy derivation heuristics (Project / Module / Capability / Feature / Factor)
+└── 05-requirement-levels.md          # NEW per ADR-0012 -- L1-L5 business-process taxonomy + classification heuristic + ambiguity handling
 ```
 
 ## Templates folder
@@ -255,6 +263,9 @@ The same `/estimate` command without `--input` walks the auto-discovery hierarch
 
 ## References
 
-- ADR: [ADR-0009](../adr/0009-solution-estimate-consolidated.md) (the consolidated cluster decision)
+- ADRs:
+  - [ADR-0009](../adr/0009-solution-estimate-consolidated.md) (the consolidated cluster decision)
+  - [ADR-0012](../adr/0012-requirement-level-taxonomy.md) (Requirement Level L1-L5 business-process taxonomy + Estimation Hierarchy rename — 2026-05-15)
 - Cross-references: [10-aggregators.md](../10-aggregators.md) (aggregator pattern), [agents/brownfield.md](brownfield.md) (provides `_brownfield/inventory.json` for multipliers)
 - Backlog: `bk-009` (this agent's authoring), `bk-010` (factor catalogue extensions for F&O / deeper Integration / deeper Reporting)
+- Defect history: [implementation.md `2026-05-15-006`](../../implementation.md) (DEFECT-001 intake), `2026-05-15-007` (DEFECT-001 resolution)
